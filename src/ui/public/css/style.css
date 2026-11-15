@@ -1595,41 +1595,55 @@ body.theme-cyberpunk .analytics-number {
   content: "";
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 18% 52%, rgba(126, 40, 211, 0.28), transparent 16%),
-    radial-gradient(ellipse at 81% 38%, rgba(126, 40, 211, 0.25), transparent 17%),
-    radial-gradient(ellipse at 60% 83%, rgba(126, 40, 211, 0.2), transparent 18%);
+    radial-gradient(ellipse at 18% 52%, rgba(150, 45, 230, 0.34), transparent 18%),
+    radial-gradient(ellipse at 81% 38%, rgba(150, 45, 230, 0.32), transparent 19%),
+    radial-gradient(ellipse at 60% 83%, rgba(150, 45, 230, 0.28), transparent 20%);
   filter: blur(28px);
 }
 
 .landing-glow {
   position: absolute;
   z-index: -1;
-  width: 58px;
+  width: 92px;
   aspect-ratio: 1;
-  background: #a63df3;
-  clip-path: polygon(50% 0, 62% 35%, 100% 50%, 62% 63%, 50% 100%, 38% 63%, 0 50%, 38% 35%);
-  filter: drop-shadow(0 0 12px rgba(175, 72, 255, 0.9)) blur(1px);
-  opacity: 0.68;
+  background: radial-gradient(ellipse at center, rgba(181, 83, 255, 0.72), rgba(147, 50, 218, 0.42) 35%, transparent 72%);
+  filter: drop-shadow(0 0 24px rgba(175, 72, 255, 0.9));
+  opacity: 0.86;
   pointer-events: none;
 }
 
+.landing-glow::after {
+  position: absolute;
+  inset: 17%;
+  background: linear-gradient(145deg, #e4a4ff 4%, #bb55f5 42%, #7915c7 82%);
+  clip-path: polygon(50% 0, 62% 35%, 100% 50%, 62% 63%, 50% 100%, 38% 63%, 0 50%, 38% 35%);
+  content: "";
+}
+
 .landing-glow-one {
-  top: 26%;
-  right: 9%;
+  top: 6%;
+  right: 8%;
 }
 
 .landing-glow-two {
-  top: 60%;
-  left: 21%;
-  width: 38px;
-  opacity: 0.55;
+  top: 19%;
+  left: 12%;
+  width: 62px;
+  opacity: 0.72;
 }
 
 .landing-glow-three {
-  top: 82%;
+  top: 31%;
   right: 24%;
-  width: 72px;
-  opacity: 0.58;
+  width: 112px;
+  opacity: 0.78;
+}
+
+.landing-glow-four {
+  top: 54%;
+  left: 48%;
+  width: 76px;
+  opacity: 0.68;
 }
 
 .landing-header {
@@ -1735,10 +1749,10 @@ body.theme-cyberpunk .analytics-number {
 }
 
 .landing-mascot-right {
-  top: 20px;
-  right: 5%;
+  top: 4px;
+  right: 0;
   width: 108px;
-  transform: rotate(8deg);
+  transform: none;
 }
 
 .landing-page .preview-box {
@@ -1913,7 +1927,7 @@ body.theme-cyberpunk .analytics-number {
 
   .landing-mascot-right {
     top: 2px;
-    right: 2%;
+    right: 0;
     width: 78px;
   }
 
@@ -1964,8 +1978,8 @@ body.theme-cyberpunk .analytics-number {
   }
 
   .landing-mascot-right {
-    top: -4px;
-    right: -4px;
+    top: 2px;
+    right: 0;
     width: 62px;
     opacity: 0.8;
   }
