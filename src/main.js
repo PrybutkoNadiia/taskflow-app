@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const path = require('path');
+require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('./storage/Database');
@@ -13,6 +14,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction) app.set('trust proxy', 1);
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'ui/public')));
+
+function asyncHandler(handler) {
+  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -77,28 +82,29 @@ function clearSessionCookie(res) {
   res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`);
 }
 
-const sessionLookup = db.prepare(`
-  SELECT users.id, users.email, users.display_name, users.avatar, users.language, users.theme
-  FROM sessions
-  JOIN users ON users.id = sessions.user_id
-  WHERE sessions.token_hash = ? AND sessions.expires_at > ?
-`);
 let requestCount = 0;
-app.use((req, res, next) => {
+app.use(asyncHandler(async (req, res, next) => {
   const token = readSessionToken(req);
   if (token) {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    req.user = sessionLookup.get(tokenHash, Math.floor(Date.now() / 1000)) || null;
+    const result = await db.pool.query(`
+      SELECT users.id, users.email, users.display_name, users.avatar, users.language, users.theme
+      FROM sessions
+      JOIN users ON users.id = sessions.user_id
+      WHERE sessions.token_hash = $1 AND sessions.expires_at > $2
+    `, [tokenHash, Math.floor(Date.now() / 1000)]);
+    req.user = result.rows[0] || null;
   } else {
     req.user = null;
   }
 
   requestCount++;
   if (requestCount % 100 === 0) {
-    db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(Math.floor(Date.now() / 1000));
+    db.pool.query('DELETE FROM sessions WHERE expires_at <= $1', [Math.floor(Date.now() / 1000)])
+      .catch(error => console.error('Could not clean up expired sessions:', error));
   }
   next();
-});
+}));
 
 function requireAuth(req, res, next) {
   if (!req.user) return next(new HttpError(401, 'Please sign in to continue'));
@@ -137,36 +143,17 @@ function limitAuthAttempts(req, res, next) {
   next();
 }
 
-function createSession(userId, res) {
+async function createSession(userId, res) {
   const token = crypto.randomBytes(32).toString('base64url');
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
-  db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)')
-    .run(tokenHash, userId, expiresAt);
+  await db.pool.query('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)', [
+    tokenHash, userId, expiresAt
+  ]);
   setSessionCookie(res, token);
 }
 
-const createDefaultBoard = db.prepare(`
-  INSERT INTO boards (id, owner_id, name, position, created_at)
-  VALUES (?, ?, ?, 0, ?)
-`);
-const createUser = db.transaction(({ email, displayName, passwordHash, language }) => {
-  const id = crypto.randomUUID();
-  db.prepare(`
-    INSERT INTO users (id, email, display_name, password_hash, language, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, email, displayName, passwordHash, language, new Date().toISOString());
-  createDefaultBoard.run(
-    crypto.randomUUID(),
-    id,
-    language === 'en' ? 'My first board' : 'Моя перша дошка',
-    new Date().toISOString()
-  );
-  return db.prepare('SELECT * FROM users WHERE id = ?').get(id);
-});
-
-app.post('/api/auth/register', verifySameOrigin, limitAuthAttempts, (req, res, next) => {
-  try {
+app.post('/api/auth/register', verifySameOrigin, limitAuthAttempts, asyncHandler(async (req, res) => {
     const displayName = requireValue(req.body.displayName, 'Name', 80);
     const email = requireValue(req.body.email, 'Email', 254).toLowerCase();
     const password = req.body.password;
@@ -175,49 +162,57 @@ app.post('/api/auth/register', verifySameOrigin, limitAuthAttempts, (req, res, n
     const language = ['uk', 'en'].includes(req.body.language) ? req.body.language : 'uk';
 
     const passwordHash = bcrypt.hashSync(password, 12);
-    const user = createUser({ email, displayName, passwordHash, language });
-    createSession(user.id, res);
+    const user = await db.transaction(async client => {
+      const id = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      await client.query(`
+        INSERT INTO users (id, email, display_name, password_hash, language, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [id, email, displayName, passwordHash, language, createdAt]);
+      await client.query(`
+        INSERT INTO boards (id, owner_id, name, position, created_at)
+        VALUES ($1, $2, $3, 0, $4)
+      `, [
+        crypto.randomUUID(),
+        id,
+        language === 'en' ? 'My first board' : 'Моя перша дошка',
+        createdAt
+      ]);
+      const result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
+      return result.rows[0];
+    });
+    await createSession(user.id, res);
     res.status(201).json({ user: getUserView(user) });
-  } catch (error) {
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return next(new HttpError(409, 'An account with this email already exists'));
-    }
-    next(error);
-  }
-});
+}));
 
-app.post('/api/auth/login', verifySameOrigin, limitAuthAttempts, (req, res, next) => {
-  try {
+app.post('/api/auth/login', verifySameOrigin, limitAuthAttempts, asyncHandler(async (req, res) => {
     const email = requireValue(req.body.email, 'Email', 254).toLowerCase();
     const password = req.body.password;
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const result = await db.pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
     if (!user || typeof password !== 'string' || Buffer.byteLength(password, 'utf8') > 72
       || !bcrypt.compareSync(password, user.password_hash)) {
       throw new HttpError(401, 'Email or password is incorrect');
     }
-    createSession(user.id, res);
+    await createSession(user.id, res);
     res.json({ user: getUserView(user) });
-  } catch (error) {
-    next(error);
-  }
-});
+}));
 
 app.get('/api/auth/me', (req, res) => {
   res.json({ user: req.user ? getUserView(req.user) : null });
 });
 
-app.post('/api/auth/logout', verifySameOrigin, (req, res) => {
+app.post('/api/auth/logout', verifySameOrigin, asyncHandler(async (req, res) => {
   const token = readSessionToken(req);
   if (token) {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(tokenHash);
+    await db.pool.query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash]);
   }
   clearSessionCookie(res);
   res.sendStatus(204);
-});
+}));
 
-app.patch('/api/profile', verifySameOrigin, requireAuth, (req, res, next) => {
-  try {
+app.patch('/api/profile', verifySameOrigin, requireAuth, asyncHandler(async (req, res) => {
     const displayName = req.body.displayName === undefined
       ? req.user.display_name
       : requireValue(req.body.displayName, 'Name', 80);
@@ -226,119 +221,112 @@ app.patch('/api/profile', verifySameOrigin, requireAuth, (req, res, next) => {
     const theme = req.body.theme === undefined ? req.user.theme : req.body.theme;
     if (!['uk', 'en'].includes(language)) throw new HttpError(400, 'Unsupported language');
     if (!['neon', 'cyberpunk', 'light'].includes(theme)) throw new HttpError(400, 'Unsupported theme');
-    db.prepare('UPDATE users SET display_name = ?, avatar = ?, language = ?, theme = ? WHERE id = ?')
-      .run(displayName, avatar, language, theme, req.user.id);
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
-    res.json({ user: getUserView(user) });
-  } catch (error) {
-    next(error);
-  }
-});
+    await db.pool.query(`
+      UPDATE users SET display_name = $1, avatar = $2, language = $3, theme = $4 WHERE id = $5
+    `, [displayName, avatar, language, theme, req.user.id]);
+    const result = await db.pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    res.json({ user: getUserView(result.rows[0]) });
+}));
 
-app.post('/api/profile/password', verifySameOrigin, requireAuth, (req, res, next) => {
-  try {
+app.post('/api/profile/password', verifySameOrigin, requireAuth, asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body;
-    const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
+    const result = await db.pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    const user = result.rows[0];
     if (typeof currentPassword !== 'string' || Buffer.byteLength(currentPassword, 'utf8') > 72
       || !bcrypt.compareSync(currentPassword, user.password_hash)) {
       throw new HttpError(400, 'Current password is incorrect');
     }
     validatePassword(newPassword, 'New password');
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
-      .run(bcrypt.hashSync(newPassword, 12), req.user.id);
+    await db.pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [
+      bcrypt.hashSync(newPassword, 12), req.user.id
+    ]);
     const currentToken = readSessionToken(req);
     const currentTokenHash = crypto.createHash('sha256').update(currentToken).digest('hex');
-    db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?')
-      .run(req.user.id, currentTokenHash);
+    await db.pool.query('DELETE FROM sessions WHERE user_id = $1 AND token_hash != $2', [
+      req.user.id, currentTokenHash
+    ]);
     res.sendStatus(204);
-  } catch (error) {
-    next(error);
-  }
-});
+}));
 
-app.delete('/api/account', verifySameOrigin, requireAuth, (req, res, next) => {
-  try {
+app.delete('/api/account', verifySameOrigin, requireAuth, asyncHandler(async (req, res) => {
     const { password } = req.body;
-    const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
+    const result = await db.pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    const user = result.rows[0];
     if (typeof password !== 'string' || Buffer.byteLength(password, 'utf8') > 72
       || !bcrypt.compareSync(password, user.password_hash)) {
       throw new HttpError(400, 'Password is incorrect');
     }
-    db.prepare('DELETE FROM users WHERE id = ?').run(req.user.id);
+    await db.pool.query('DELETE FROM users WHERE id = $1', [req.user.id]);
     clearSessionCookie(res);
     res.sendStatus(204);
-  } catch (error) {
-    next(error);
-  }
-});
+}));
 
-app.get('/api/boards', requireAuth, (req, res) => {
-  const boards = db.prepare(`
+app.get('/api/boards', requireAuth, asyncHandler(async (req, res) => {
+  const result = await db.pool.query(`
     SELECT id, name, position
-    FROM boards WHERE owner_id = ?
+    FROM boards WHERE owner_id = $1
     ORDER BY position, created_at
-  `).all(req.user.id);
-  res.json({ boards });
-});
+  `, [req.user.id]);
+  res.json({ boards: result.rows });
+}));
 
-app.post('/api/boards', verifySameOrigin, requireAuth, (req, res, next) => {
-  try {
+app.post('/api/boards', verifySameOrigin, requireAuth, asyncHandler(async (req, res) => {
     const name = requireValue(req.body.name, 'Board name', 100);
-    const position = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 AS position FROM boards WHERE owner_id = ?')
-      .get(req.user.id).position;
+    const positionResult = await db.pool.query(
+      'SELECT COALESCE(MAX(position), -1) + 1 AS position FROM boards WHERE owner_id = $1',
+      [req.user.id]
+    );
+    const position = positionResult.rows[0].position;
     const board = { id: crypto.randomUUID(), name, position };
-    db.prepare('INSERT INTO boards (id, owner_id, name, position, created_at) VALUES (?, ?, ?, ?, ?)')
-      .run(board.id, req.user.id, board.name, board.position, new Date().toISOString());
+    await db.pool.query(`
+      INSERT INTO boards (id, owner_id, name, position, created_at) VALUES ($1, $2, $3, $4, $5)
+    `, [board.id, req.user.id, board.name, board.position, new Date().toISOString()]);
     res.status(201).json({ board });
-  } catch (error) {
-    next(error);
-  }
-});
+}));
 
-app.patch('/api/boards/:boardId', verifySameOrigin, requireAuth, (req, res, next) => {
-  try {
+app.patch('/api/boards/:boardId', verifySameOrigin, requireAuth, asyncHandler(async (req, res) => {
     const name = requireValue(req.body.name, 'Board name', 100);
-    const result = db.prepare('UPDATE boards SET name = ? WHERE id = ? AND owner_id = ?')
-      .run(name, req.params.boardId, req.user.id);
-    if (!result.changes) throw new HttpError(404, 'Board not found');
+    const result = await db.pool.query(
+      'UPDATE boards SET name = $1 WHERE id = $2 AND owner_id = $3',
+      [name, req.params.boardId, req.user.id]
+    );
+    if (!result.rowCount) throw new HttpError(404, 'Board not found');
     res.json({ board: { id: req.params.boardId, name } });
-  } catch (error) {
-    next(error);
-  }
-});
+}));
 
-app.delete('/api/boards/:boardId', verifySameOrigin, requireAuth, (req, res, next) => {
-  try {
-    const count = db.prepare('SELECT COUNT(*) AS count FROM boards WHERE owner_id = ?').get(req.user.id).count;
+app.delete('/api/boards/:boardId', verifySameOrigin, requireAuth, asyncHandler(async (req, res) => {
+    const countResult = await db.pool.query('SELECT COUNT(*) AS count FROM boards WHERE owner_id = $1', [
+      req.user.id
+    ]);
+    const count = Number(countResult.rows[0].count);
     if (count <= 1) throw new HttpError(400, 'Cannot delete the only board');
-    const result = db.prepare('DELETE FROM boards WHERE id = ? AND owner_id = ?')
-      .run(req.params.boardId, req.user.id);
-    if (!result.changes) throw new HttpError(404, 'Board not found');
+    const result = await db.pool.query('DELETE FROM boards WHERE id = $1 AND owner_id = $2', [
+      req.params.boardId, req.user.id
+    ]);
+    if (!result.rowCount) throw new HttpError(404, 'Board not found');
     res.sendStatus(204);
-  } catch (error) {
-    next(error);
-  }
-});
+}));
 
-function requireOwnedBoard(req, res, next) {
-  const board = db.prepare('SELECT id FROM boards WHERE id = ? AND owner_id = ?')
-    .get(req.params.boardId, req.user.id);
+const requireOwnedBoard = asyncHandler(async (req, res, next) => {
+  const result = await db.pool.query('SELECT id FROM boards WHERE id = $1 AND owner_id = $2', [
+    req.params.boardId, req.user.id
+  ]);
+  const board = result.rows[0];
   if (!board) return next(new HttpError(404, 'Board not found'));
   req.board = board;
   next();
-}
-
-app.get('/api/boards/:boardId/tasks', requireAuth, requireOwnedBoard, (req, res) => {
-  const tasks = db.prepare(`
-    SELECT id, title, status, priority, due_date AS dueDate, created_at AS createdAt
-    FROM tasks WHERE board_id = ?
-    ORDER BY created_at, rowid
-  `).all(req.board.id);
-  res.json({ tasks });
 });
 
-app.post('/api/boards/:boardId/tasks', verifySameOrigin, requireAuth, requireOwnedBoard, (req, res, next) => {
-  try {
+app.get('/api/boards/:boardId/tasks', requireAuth, requireOwnedBoard, asyncHandler(async (req, res) => {
+  const result = await db.pool.query(`
+    SELECT id, title, status, priority, due_date AS "dueDate", created_at AS "createdAt"
+    FROM tasks WHERE board_id = $1
+    ORDER BY created_at, id
+  `, [req.board.id]);
+  res.json({ tasks: result.rows });
+}));
+
+app.post('/api/boards/:boardId/tasks', verifySameOrigin, requireAuth, requireOwnedBoard, asyncHandler(async (req, res) => {
     const title = requireValue(req.body.title, 'Task title', 500);
     const status = req.body.status || 'todo';
     const priority = req.body.priority || 'Medium';
@@ -356,31 +344,24 @@ app.post('/api/boards/:boardId/tasks', verifySameOrigin, requireAuth, requireOwn
       dueDate,
       createdAt: new Date().toISOString()
     };
-    db.prepare(`
+    await db.pool.query(`
       INSERT INTO tasks (id, board_id, title, status, priority, due_date, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(task.id, req.board.id, task.title, task.status, task.priority, task.dueDate, task.createdAt);
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [task.id, req.board.id, task.title, task.status, task.priority, task.dueDate, task.createdAt]);
     res.status(201).json({ task });
-  } catch (error) {
-    next(error);
-  }
-});
+}));
 
-app.patch('/api/boards/:boardId/tasks/:taskId', verifySameOrigin, requireAuth, requireOwnedBoard, (req, res, next) => {
-  try {
+app.patch('/api/boards/:boardId/tasks/:taskId', verifySameOrigin, requireAuth, requireOwnedBoard, asyncHandler(async (req, res) => {
     const status = req.body.status;
     if (!['todo', 'in-progress', 'done'].includes(status)) throw new HttpError(400, 'Unsupported task status');
-    const result = db.prepare('UPDATE tasks SET status = ? WHERE id = ? AND board_id = ?')
-      .run(status, req.params.taskId, req.board.id);
-    if (!result.changes) throw new HttpError(404, 'Task not found');
+    const result = await db.pool.query('UPDATE tasks SET status = $1 WHERE id = $2 AND board_id = $3', [
+      status, req.params.taskId, req.board.id
+    ]);
+    if (!result.rowCount) throw new HttpError(404, 'Task not found');
     res.json({ id: req.params.taskId, status });
-  } catch (error) {
-    next(error);
-  }
-});
+}));
 
-app.post('/api/account/import', verifySameOrigin, requireAuth, (req, res, next) => {
-  try {
+app.post('/api/account/import', verifySameOrigin, requireAuth, asyncHandler(async (req, res) => {
     const { boards, tasksByBoard } = req.body;
     if (!Array.isArray(boards) || boards.length === 0 || boards.length > 100
       || !tasksByBoard || typeof tasksByBoard !== 'object' || Array.isArray(tasksByBoard)) {
@@ -391,25 +372,25 @@ app.post('/api/account/import', verifySameOrigin, requireAuth, (req, res, next) 
     );
     if (totalTasks > 5000) throw new HttpError(400, 'Import is too large');
 
-    const importData = db.transaction(() => {
-      const user = db.prepare('SELECT legacy_imported FROM users WHERE id = ?').get(req.user.id);
-      if (user.legacy_imported) throw new HttpError(409, 'Data has already been imported');
-      const boardRows = boards.map((board, index) => {
-        const name = requireValue(typeof board === 'string' ? board : board.name, 'Board name', 100);
-        const oldId = typeof board === 'string' ? String(index) : String(board.id || index);
-        return { oldId, id: crypto.randomUUID(), name, position: index };
-      });
+    const boardRows = boards.map((board, index) => {
+      const name = requireValue(typeof board === 'string' ? board : board.name, 'Board name', 100);
+      const oldId = typeof board === 'string' ? String(index) : String(board.id || index);
+      return { oldId, id: crypto.randomUUID(), name, position: index };
+    });
 
-      db.prepare('DELETE FROM boards WHERE owner_id = ?').run(req.user.id);
-      const addBoard = db.prepare(`
-        INSERT INTO boards (id, owner_id, name, position, created_at) VALUES (?, ?, ?, ?, ?)
-      `);
-      const addTask = db.prepare(`
-        INSERT INTO tasks (id, board_id, title, status, priority, due_date, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `);
+    await db.transaction(async client => {
+      const userResult = await client.query('SELECT legacy_imported FROM users WHERE id = $1 FOR UPDATE', [
+        req.user.id
+      ]);
+      if (!userResult.rows[0] || userResult.rows[0].legacy_imported) {
+        throw new HttpError(409, 'Data has already been imported');
+      }
+
+      await client.query('DELETE FROM boards WHERE owner_id = $1', [req.user.id]);
       for (const board of boardRows) {
-        addBoard.run(board.id, req.user.id, board.name, board.position, new Date().toISOString());
+        await client.query(`
+          INSERT INTO boards (id, owner_id, name, position, created_at) VALUES ($1, $2, $3, $4, $5)
+        `, [board.id, req.user.id, board.name, board.position, new Date().toISOString()]);
         const boardTasks = tasksByBoard[board.oldId];
         if (!Array.isArray(boardTasks)) continue;
         for (const oldTask of boardTasks) {
@@ -420,27 +401,47 @@ app.post('/api/account/import', verifySameOrigin, requireAuth, (req, res, next) 
           const dueDate = typeof oldTask.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(oldTask.dueDate)
             ? oldTask.dueDate
             : null;
-          addTask.run(crypto.randomUUID(), board.id, title, status, priority, dueDate, new Date().toISOString());
+          await client.query(`
+            INSERT INTO tasks (id, board_id, title, status, priority, due_date, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `, [
+            crypto.randomUUID(), board.id, title, status, priority, dueDate, new Date().toISOString()
+          ]);
         }
       }
-      db.prepare('UPDATE users SET legacy_imported = 1 WHERE id = ?').run(req.user.id);
-      return boardRows.length;
+      await client.query('UPDATE users SET legacy_imported = TRUE WHERE id = $1', [req.user.id]);
     });
 
-    res.json({ importedBoards: importData() });
-  } catch (error) {
-    next(error);
-  }
-});
+    res.json({ importedBoards: boardRows.length });
+}));
 
 app.use('/api', (req, res, next) => next(new HttpError(404, 'API endpoint not found')));
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
-  const status = error instanceof HttpError ? error.status : Number(error.status) === 400 ? 400 : 500;
+  const isDuplicateRegistration = error.code === '23505' && req.path === '/api/auth/register';
+  const status = isDuplicateRegistration
+    ? 409
+    : error instanceof HttpError
+      ? error.status
+      : Number(error.status) === 400
+        ? 400
+        : 500;
   if (status >= 500) console.error(error);
-  res.status(status).json({ error: status >= 500 ? 'Unexpected server error' : error.message || 'Invalid request' });
+  const message = isDuplicateRegistration
+    ? 'An account with this email already exists'
+    : status >= 500
+      ? 'Unexpected server error'
+      : error.message || 'Invalid request';
+  res.status(status).json({ error: message });
 });
 
-app.listen(PORT, () => {
-  console.log(`TaskFlow is listening on port ${PORT}`);
-});
+db.initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`TaskFlow is listening on port ${PORT}`);
+    });
+  })
+  .catch(error => {
+    console.error('Could not initialize PostgreSQL database:', error);
+    process.exitCode = 1;
+  });
