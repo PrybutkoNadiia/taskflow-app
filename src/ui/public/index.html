@@ -121,6 +121,9 @@
 <body class="dashboard-body">
 
   <section class="landing-page" id="landing-page">
+    <div class="landing-glow landing-glow-one" aria-hidden="true"></div>
+    <div class="landing-glow landing-glow-two" aria-hidden="true"></div>
+    <div class="landing-glow landing-glow-three" aria-hidden="true"></div>
     <header class="landing-header">
       <div class="logo">
         <span class="logo-icon">🐈‍⬛</span>
@@ -128,37 +131,81 @@
       </div>
     </header>
     <main class="hero-section">
+      <div class="landing-mascot landing-mascot-left" aria-hidden="true">
+        <img src="assets/img/cat-mascot.png" alt="">
+      </div>
+      <div class="landing-mascot landing-mascot-right" aria-hidden="true">
+        <img src="assets/img/cat-mascot-top.png" alt="">
+      </div>
       <div class="hero-content">
-        <h1 class="hero-title" data-i18n="landing-title">Плануйте справи легко з TaskFlow</h1>
-        <p class="hero-subtitle" data-i18n="landing-subtitle">Організуйте завдання на канбан-дошках і зосередьтеся на важливому.</p>
+        <span class="hero-eyebrow" data-i18n="landing-eyebrow">ПЛАНУЙ. ДІЙ. ДОСЯГАЙ.</span>
+        <h1 class="hero-title" data-i18n="landing-title">Керуй завданнями без хаосу та стресу</h1>
+        <p class="hero-subtitle" data-i18n="landing-subtitle">TaskFlow допомагає організувати робочі та особисті справи в одному зручному місці.</p>
         <div class="cta-container">
           <button type="button" class="btn-primary neon-glow" id="landing-cta" data-i18n="landing-cta">Спробувати безкоштовно</button>
         </div>
       </div>
-      <div class="preview-box neon-glow" aria-hidden="true">
+      <div class="preview-box neon-glow" aria-label="Приклад списку завдань" data-i18n-aria-label="landing-preview-label">
         <div class="preview-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
-        <div class="preview-task-item">📌 Запланувати важливі справи</div>
-        <div class="preview-task-item">🚀 Рухатися до результату</div>
-        <div class="preview-task-item">✅ Відзначати виконане</div>
+        <div class="preview-task-item">
+          <span class="preview-check preview-check-done">✓</span>
+          <span data-i18n="landing-preview-task-one">Розробити дизайн-шапки сайту</span>
+        </div>
+        <div class="preview-task-item">
+          <span class="preview-check"></span>
+          <span data-i18n="landing-preview-task-two">Закінчити роботу над проєктом</span>
+        </div>
       </div>
-      <section class="features-section">
-        <h2 class="section-heading" data-i18n="landing-features-title">Усе необхідне для продуктивної роботи</h2>
+      <section class="features-section" aria-labelledby="landing-features-title">
+        <h2 class="section-heading" id="landing-features-title" data-i18n="landing-features-title">Чому саме TaskFlow?</h2>
         <div class="features-grid">
           <article class="feature-box">
-            <h3 data-i18n="landing-feature-boards-title">Канбан-дошки</h3>
+            <span class="feature-icon" aria-hidden="true">✦</span>
+            <h3 data-i18n="landing-feature-planning-title">Розумне планування</h3>
+            <p data-i18n="landing-feature-planning-text">Додавайте пріоритети та визначайте, за що взятися насамперед.</p>
+          </article>
+          <article class="feature-box">
+            <span class="feature-icon" aria-hidden="true">▦</span>
+            <h3 data-i18n="landing-feature-boards-title">Зручні дошки</h3>
             <p data-i18n="landing-feature-boards-text">Організовуйте завдання за етапами та керуйте кількома проєктами.</p>
           </article>
           <article class="feature-box">
-            <h3 data-i18n="landing-feature-analytics-title">Зрозуміла аналітика</h3>
-            <p data-i18n="landing-feature-analytics-text">Стежте за прогресом і підсумками завдань на всіх дошках.</p>
-          </article>
-          <article class="feature-box">
-            <h3 data-i18n="landing-feature-focus-title">Фокус на головному</h3>
-            <p data-i18n="landing-feature-focus-text">Плануйте дедлайни та працюйте у власному темпі.</p>
+            <span class="feature-icon" aria-hidden="true">🐈‍⬛</span>
+            <h3 data-i18n="landing-feature-focus-title">Маскот-помічник</h3>
+            <p data-i18n="landing-feature-focus-text">Персональний котик, який підтримує ваш прогрес та нагадує про дедлайни.</p>
           </article>
         </div>
       </section>
+      <section class="how-it-works" aria-labelledby="landing-how-title">
+        <h2 class="section-heading" id="landing-how-title" data-i18n="landing-how-title">Почати просто</h2>
+        <div class="steps-grid">
+          <article class="step-card">
+            <span class="step-number">01</span>
+            <h3 data-i18n="landing-step-one-title">Створи акаунт</h3>
+            <p data-i18n="landing-step-one-text">Зареєструйся, щоб твої дошки й завдання були збережені.</p>
+          </article>
+          <article class="step-card">
+            <span class="step-number">02</span>
+            <h3 data-i18n="landing-step-two-title">Додай завдання</h3>
+            <p data-i18n="landing-step-two-text">Розклади справи по дошках і визнач, що важливо зробити спочатку.</p>
+          </article>
+          <article class="step-card">
+            <span class="step-number">03</span>
+            <h3 data-i18n="landing-step-three-title">Рухайся вперед</h3>
+            <p data-i18n="landing-step-three-text">Стеж за прогресом, дедлайнами та зосереджуйся у фокус-режимі.</p>
+          </article>
+        </div>
+      </section>
+      <section class="landing-bottom-cta" aria-labelledby="landing-bottom-title">
+        <h2 id="landing-bottom-title" data-i18n="landing-bottom-title">Твої плани. Твій темп. Твій TaskFlow.</h2>
+        <p data-i18n="landing-bottom-text">Зроби перший крок до спокійного та організованого дня.</p>
+        <button type="button" class="btn-primary neon-glow landing-secondary-cta" data-i18n="landing-cta">Спробувати безкоштовно</button>
+      </section>
     </main>
+    <footer class="landing-footer">
+      <span data-i18n="landing-footer">Менше хаосу — більше зробленого.</span>
+      <span>🐾 TaskFlow</span>
+    </footer>
   </section>
 
   <div class="auth-overlay" id="auth-modal" style="display: none;">

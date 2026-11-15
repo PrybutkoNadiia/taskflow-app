@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const authModal = document.getElementById('auth-modal');
   const authModeToggle = document.getElementById('auth-mode-toggle');
   const authError = document.getElementById('auth-error');
-  const landingCta = document.getElementById('landing-cta');
+  const landingCtas = document.querySelectorAll('#landing-cta, .landing-secondary-cta');
   const homeLogo = document.getElementById('home-logo');
 
   const openTaskModalBtn = document.getElementById('add-task-btn');
@@ -70,17 +70,31 @@ document.addEventListener('DOMContentLoaded', () => {
       'settings-current-password-label': 'Поточний пароль',
       'settings-new-password-label': 'Новий пароль (необов’язково)',
       'account-delete-confirm': 'Видалити акаунт і всі його дошки та завдання без можливості відновлення?',
-      'landing-title': 'Плануйте справи легко з TaskFlow',
-      'landing-subtitle': 'Організуйте завдання на канбан-дошках і зосередьтеся на важливому.',
+      'landing-eyebrow': 'ПЛАНУЙ. ДІЙ. ДОСЯГАЙ.',
+      'landing-title': 'Керуй завданнями без хаосу та стресу',
+      'landing-subtitle': 'TaskFlow допомагає організувати робочі та особисті справи в одному зручному місці.',
       'landing-cta': 'Спробувати безкоштовно',
       'landing-open-app': 'Перейти до дошки',
-      'landing-features-title': 'Усе необхідне для продуктивної роботи',
-      'landing-feature-boards-title': 'Канбан-дошки',
+      'landing-preview-task-one': 'Розробити дизайн-шапки сайту',
+      'landing-preview-task-two': 'Закінчити роботу над проєктом',
+      'landing-preview-label': 'Приклад списку завдань',
+      'landing-features-title': 'Чому саме TaskFlow?',
+      'landing-feature-planning-title': 'Розумне планування',
+      'landing-feature-planning-text': 'Додавайте пріоритети та визначайте, за що взятися насамперед.',
+      'landing-feature-boards-title': 'Зручні дошки',
       'landing-feature-boards-text': 'Організовуйте завдання за етапами та керуйте кількома проєктами.',
-      'landing-feature-analytics-title': 'Зрозуміла аналітика',
-      'landing-feature-analytics-text': 'Стежте за прогресом і підсумками завдань на всіх дошках.',
-      'landing-feature-focus-title': 'Фокус на головному',
-      'landing-feature-focus-text': 'Плануйте дедлайни та працюйте у власному темпі.',
+      'landing-feature-focus-title': 'Маскот-помічник',
+      'landing-feature-focus-text': 'Пухнастий помічник створює затишний настрій і підтримує фокус.',
+      'landing-how-title': 'Почати просто',
+      'landing-step-one-title': 'Створи акаунт',
+      'landing-step-one-text': 'Зареєструйся, щоб твої дошки й завдання були збережені.',
+      'landing-step-two-title': 'Додай завдання',
+      'landing-step-two-text': 'Розклади справи по дошках і визнач, що важливо зробити спочатку.',
+      'landing-step-three-title': 'Рухайся вперед',
+      'landing-step-three-text': 'Стеж за прогресом, дедлайнами та зосереджуйся у фокус-режимі.',
+      'landing-bottom-title': 'Твої плани. Твій темп. Твій TaskFlow.',
+      'landing-bottom-text': 'Зроби перший крок до спокійного та організованого дня.',
+      'landing-footer': 'Менше хаосу — більше зробленого.',
       'menu-title': 'Меню',
       'nav-boards': '📋 Дошки',
       'nav-calendar': '📅 Календар',
@@ -177,17 +191,31 @@ document.addEventListener('DOMContentLoaded', () => {
       'settings-current-password-label': 'Current password',
       'settings-new-password-label': 'New password (optional)',
       'account-delete-confirm': 'Permanently delete your account, boards, and tasks?',
-      'landing-title': 'Plan your work with TaskFlow',
-      'landing-subtitle': 'Organize tasks on Kanban boards and focus on what matters.',
+      'landing-eyebrow': 'PLAN. ACT. ACHIEVE.',
+      'landing-title': 'Manage tasks without chaos or stress',
+      'landing-subtitle': 'TaskFlow brings your work and personal tasks together in one convenient place.',
       'landing-cta': 'Try it for free',
       'landing-open-app': 'Go to your board',
-      'landing-features-title': 'Everything you need to work productively',
-      'landing-feature-boards-title': 'Kanban boards',
+      'landing-preview-task-one': 'Design the website header',
+      'landing-preview-task-two': 'Finish work on the project',
+      'landing-preview-label': 'Sample task list',
+      'landing-features-title': 'Why TaskFlow?',
+      'landing-feature-planning-title': 'Plan with clarity',
+      'landing-feature-planning-text': 'Set priorities and decide what to tackle first.',
+      'landing-feature-boards-title': 'Flexible boards',
       'landing-feature-boards-text': 'Organize tasks by stage and manage multiple projects.',
-      'landing-feature-analytics-title': 'Clear analytics',
-      'landing-feature-analytics-text': 'Track progress and task totals across all your boards.',
-      'landing-feature-focus-title': 'Focus on what matters',
-      'landing-feature-focus-text': 'Plan deadlines and work at your own pace.',
+      'landing-feature-focus-title': 'A friendly focus buddy',
+      'landing-feature-focus-text': 'A playful cat companion adds encouragement to your focus sessions.',
+      'landing-how-title': 'Get started in three steps',
+      'landing-step-one-title': 'Create an account',
+      'landing-step-one-text': 'Sign up to keep your boards and tasks saved.',
+      'landing-step-two-title': 'Add your tasks',
+      'landing-step-two-text': 'Sort your work into boards and choose what to do first.',
+      'landing-step-three-title': 'Make progress',
+      'landing-step-three-text': 'Track progress and deadlines, then focus with the Pomodoro timer.',
+      'landing-bottom-title': 'Your plans. Your pace. Your TaskFlow.',
+      'landing-bottom-text': 'Take the first step toward a calmer, more organized day.',
+      'landing-footer': 'Less chaos — more done.',
       'menu-title': 'Menu',
       'nav-boards': '📋 Boards',
       'nav-calendar': '📅 Calendar',
@@ -284,9 +312,9 @@ document.addEventListener('DOMContentLoaded', () => {
         el.textContent = dict[key];
       }
     });
-    if (landingCta) {
+    if (landingCtas.length) {
       const ctaKey = currentUser ? 'landing-open-app' : 'landing-cta';
-      landingCta.textContent = dict[ctaKey];
+      landingCtas.forEach(button => { button.textContent = dict[ctaKey]; });
     }
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.getAttribute('data-i18n-placeholder');
@@ -295,6 +323,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-i18n-title]').forEach(el => {
       const key = el.getAttribute('data-i18n-title');
       if (dict[key]) el.setAttribute('title', dict[key]);
+    });
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+      const key = el.getAttribute('data-i18n-aria-label');
+      if (dict[key]) el.setAttribute('aria-label', dict[key]);
     });
     if (langSelect) langSelect.value = selectedLang;
     if (customModalSubmit) customModalSubmit.textContent = dict['btn-confirm'];
@@ -482,10 +514,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (settingsAvatarPreview) settingsAvatarPreview.textContent = avatar;
     }
 
-    if (landingCta) {
+    if (landingCtas.length) {
       const lang = localStorage.getItem('taskflow_lang') || 'uk';
       const dict = translations[lang] || translations.uk;
-      landingCta.textContent = dict[currentUser ? 'landing-open-app' : 'landing-cta'];
+      landingCtas.forEach(button => {
+        button.textContent = dict[currentUser ? 'landing-open-app' : 'landing-cta'];
+      });
     }
   }
 
@@ -580,14 +614,14 @@ document.addEventListener('DOMContentLoaded', () => {
     ].forEach(key => localStorage.removeItem(key));
   }
 
-  if (landingCta) {
-    landingCta.addEventListener('click', () => {
+  if (landingCtas.length) {
+    landingCtas.forEach(button => button.addEventListener('click', () => {
       if (currentUser) {
         showDashboard();
       } else if (authModal) {
         authModal.style.display = 'flex';
       }
-    });
+    }));
   }
 
   if (homeLogo) {
