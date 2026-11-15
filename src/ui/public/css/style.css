@@ -1604,48 +1604,39 @@ body.theme-cyberpunk .analytics-number {
 .landing-glow {
   position: absolute;
   z-index: -1;
-  width: 92px;
+  width: 160px;
   aspect-ratio: 1;
-  background: radial-gradient(ellipse at center, rgba(181, 83, 255, 0.72), rgba(147, 50, 218, 0.42) 35%, transparent 72%);
-  filter: drop-shadow(0 0 24px rgba(175, 72, 255, 0.9));
-  opacity: 0.86;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(181, 83, 255, 0.44) 0%, rgba(147, 50, 218, 0.26) 34%, rgba(130, 40, 200, 0.1) 54%, transparent 74%);
+  filter: blur(4px);
+  opacity: 0.76;
   pointer-events: none;
 }
 
-.landing-glow::after {
-  position: absolute;
-  inset: 16%;
-  background: linear-gradient(145deg, #e4a4ff 4%, #bb55f5 42%, #7915c7 82%);
-  clip-path: polygon(50% 0, 61% 36%, 100% 38%, 69% 59%, 79% 100%, 50% 76%, 21% 100%, 31% 59%, 0 38%, 39% 36%);
-  content: "";
-  filter: blur(7px);
-  opacity: 0.78;
-}
-
 .landing-glow-one {
-  top: 6%;
-  right: 8%;
+  top: 8%;
+  right: 5%;
 }
 
 .landing-glow-two {
-  top: 19%;
-  left: 12%;
-  width: 62px;
-  opacity: 0.72;
+  top: 23%;
+  left: 4%;
+  width: 130px;
+  opacity: 0.62;
 }
 
 .landing-glow-three {
-  top: 31%;
-  right: 24%;
-  width: 112px;
-  opacity: 0.78;
+  top: 38%;
+  right: 10%;
+  width: 190px;
+  opacity: 0.68;
 }
 
 .landing-glow-four {
-  top: 54%;
-  left: 48%;
-  width: 76px;
-  opacity: 0.68;
+  top: 58%;
+  left: 42%;
+  width: 150px;
+  opacity: 0.56;
 }
 
 .landing-header {
@@ -1729,19 +1720,24 @@ body.theme-cyberpunk .analytics-number {
 
 .landing-mascot::before {
   position: absolute;
-  z-index: -1;
-  inset: 25% -15%;
+  z-index: 0;
+  right: -24%;
+  bottom: -24%;
+  left: -24%;
+  height: 64%;
   border-radius: 50%;
-  background: rgba(159, 55, 240, 0.68);
+  background: radial-gradient(ellipse at center, rgba(171, 56, 247, 0.96) 0%, rgba(145, 47, 220, 0.78) 42%, rgba(120, 35, 190, 0.2) 72%, transparent 84%);
   content: "";
-  filter: blur(21px);
+  filter: blur(9px);
 }
 
 .landing-mascot img {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 0 7px rgba(174, 89, 255, 0.8));
+  filter: none;
 }
 
 .landing-mascot-left {
