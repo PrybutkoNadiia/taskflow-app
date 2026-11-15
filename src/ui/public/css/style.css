@@ -1614,10 +1614,12 @@ body.theme-cyberpunk .analytics-number {
 
 .landing-glow::after {
   position: absolute;
-  inset: 17%;
+  inset: 16%;
   background: linear-gradient(145deg, #e4a4ff 4%, #bb55f5 42%, #7915c7 82%);
-  clip-path: polygon(50% 0, 62% 35%, 100% 50%, 62% 63%, 50% 100%, 38% 63%, 0 50%, 38% 35%);
+  clip-path: polygon(50% 0, 61% 36%, 100% 38%, 69% 59%, 79% 100%, 50% 76%, 21% 100%, 31% 59%, 0 38%, 39% 36%);
   content: "";
+  filter: blur(7px);
+  opacity: 0.78;
 }
 
 .landing-glow-one {
@@ -1943,6 +1945,19 @@ body.theme-cyberpunk .analytics-number {
 }
 
 @media (max-width: 600px) {
+  .landing-page {
+    background: radial-gradient(ellipse at 50% 38%, rgba(86, 28, 132, 0.07), transparent 45%), #09090c;
+  }
+
+  .landing-page::before {
+    opacity: 0.32;
+  }
+
+  .landing-glow,
+  .landing-mascot-left {
+    display: none;
+  }
+
   .landing-header,
   .landing-footer {
     width: calc(100% - 40px);
@@ -1963,7 +1978,7 @@ body.theme-cyberpunk .analytics-number {
 
   .landing-page .hero-title {
     max-width: 520px;
-    font-size: clamp(34px, 9vw, 46px);
+    font-size: clamp(31px, 8.5vw, 38px);
   }
 
   .landing-page .hero-subtitle {
