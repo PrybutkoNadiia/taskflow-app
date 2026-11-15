@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="app-title">TaskFlow — Канбан Дошка</title>
+  <link rel="stylesheet" href="css/style.css" id="theme-stylesheet">
+  <style>
+    .sidebar {
+      transition: transform 0.3s ease;
+      position: relative;
+    }
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+    }
+    .main-content {
+      transition: margin-left 0.3s ease;
+    }
+    .main-content.expanded {
+      margin-left: 0 !important;
+    }
+
+    .profile-avatar-clean {
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+      min-height: 40px !important;
+      border-radius: 50% !important;
+      border: 1px solid #8c52ff !important;
+      background: transparent !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: hidden !important;
+      font-size: 20px !important;
+      box-sizing: border-box !important;
+      padding: 0 !important;
+    }
+    .profile-avatar-clean img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      border-radius: 50% !important;
+    }
+
+    /* Стилі для списку дошок та ізольованих кнопок */
+    .boards-dropdown-list {
+      list-style: none;
+      padding-left: 0;
+      margin: 5px 0;
+    }
+    .board-item {
+      padding: 6px 10px;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s, color 0.2s;
+      border: 1px solid transparent;
+      user-select: none;
+      position: relative;
+    }
+    .board-item.active {
+      background: rgba(140, 82, 255, 0.25) !important;
+      border-color: #8c52ff !important;
+      color: #ffffff !important;
+      font-weight: 600;
+      box-shadow: 0 0 10px rgba(140, 82, 255, 0.2);
+    }
+    .board-action-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      cursor: pointer !important;
+      font-size: 13px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      transition: background 0.2s, transform 0.1s;
+      color: #fff;
+      position: relative;
+      z-index: 999 !important;
+      pointer-events: auto !important;
+    }
+    .board-action-btn:hover {
+      background: #8c52ff;
+      transform: scale(1.15);
+    }
+
+    /* Фокус-режим */
+    .focus-timer-display {
+      font-size: 48px;
+      font-weight: bold;
+      text-align: center;
+      margin: 15px 0;
+      color: #8c52ff;
+      text-shadow: 0 0 10px rgba(140, 82, 255, 0.5);
+      font-family: monospace;
+    }
+    .focus-mascot-box {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(140, 82, 255, 0.1);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(140, 82, 255, 0.3);
+      margin-bottom: 20px;
+    }
+
+    /* Явне забезпечення клікабельності для кнопки фокус-режиму */
+    #open-focus-btn {
+      position: relative;
+      z-index: 100 !important;
+      pointer-events: auto !important;
+      cursor: pointer !important;
+    }
+  </style>
+</head>
+<body class="dashboard-body">
+
+  <section class="landing-page" id="landing-page">
+    <header class="landing-header">
+      <div class="logo">
+        <span class="logo-icon">🐈‍⬛</span>
+        <span class="logo-text">TaskFlow</span>
+      </div>
+    </header>
+    <main class="hero-section">
+      <div class="hero-content">
+        <h1 class="hero-title" data-i18n="landing-title">Плануйте справи легко з TaskFlow</h1>
+        <p class="hero-subtitle" data-i18n="landing-subtitle">Організуйте завдання на канбан-дошках і зосередьтеся на важливому.</p>
+        <div class="cta-container">
+          <button type="button" class="btn-primary neon-glow" id="landing-cta" data-i18n="landing-cta">Спробувати безкоштовно</button>
+        </div>
+      </div>
+      <div class="preview-box neon-glow" aria-hidden="true">
+        <div class="preview-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+        <div class="preview-task-item">📌 Запланувати важливі справи</div>
+        <div class="preview-task-item">🚀 Рухатися до результату</div>
+        <div class="preview-task-item">✅ Відзначати виконане</div>
+      </div>
+      <section class="features-section">
+        <h2 class="section-heading" data-i18n="landing-features-title">Усе необхідне для продуктивної роботи</h2>
+        <div class="features-grid">
+          <article class="feature-box">
+            <h3 data-i18n="landing-feature-boards-title">Канбан-дошки</h3>
+            <p data-i18n="landing-feature-boards-text">Організовуйте завдання за етапами та керуйте кількома проєктами.</p>
+          </article>
+          <article class="feature-box">
+            <h3 data-i18n="landing-feature-analytics-title">Зрозуміла аналітика</h3>
+            <p data-i18n="landing-feature-analytics-text">Стежте за прогресом і підсумками завдань на всіх дошках.</p>
+          </article>
+          <article class="feature-box">
+            <h3 data-i18n="landing-feature-focus-title">Фокус на головному</h3>
+            <p data-i18n="landing-feature-focus-text">Плануйте дедлайни та працюйте у власному темпі.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <div class="auth-overlay" id="auth-modal" style="display: none;">
+    <div class="auth-card neon-glow">
+      <div class="auth-logo">🐈‍⬛ TaskFlow</div>
+      <h2 id="auth-title" data-i18n="auth-welcome">Ласкаво просимо!</h2>
+      <p class="auth-subtitle" data-i18n="auth-sub">Будь ласка, зареєструйтеся, щоб розпочати роботу.</p>
+
+      <form id="auth-form">
+        <div class="form-group">
+          <label for="auth-name" data-i18n="settings-name-label">Ваше ім'я</label>
+          <input type="text" id="auth-name" placeholder="Наприклад: Надія" data-i18n-placeholder="placeholder-name" required>
+        </div>
+        <div class="form-group">
+          <label for="auth-email" data-i18n="settings-email-label">Email</label>
+          <input type="email" id="auth-email" placeholder="your@email.com" data-i18n-placeholder="placeholder-email" required>
+        </div>
+        <div class="form-group">
+          <label for="auth-password" data-i18n="settings-password-label">Пароль</label>
+          <input type="password" id="auth-password" placeholder="Введіть пароль" data-i18n-placeholder="placeholder-password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-primary neon-glow" style="width: 100%; margin-top: 10px;" data-i18n="btn-create-profile">Створити профіль</button>
+      </form>
+      <p id="auth-error" role="alert" style="color: #ff8080; min-height: 1.2em;"></p>
+      <button type="button" class="btn-secondary" id="auth-mode-toggle" data-i18n="auth-show-login">Уже маєте акаунт? Увійти</button>
+    </div>
+  </div>
+
+  <aside class="sidebar" id="app-sidebar">
+    <button id="toggle-sidebar-btn" title="Згорнути меню" data-i18n-title="btn-collapse-sidebar-title" style="position: absolute; top: 12px; right: 12px; background: rgba(140,82,255,0.2); color: #fff; border: 1px solid #8c52ff; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 12px; z-index: 10;">◀</button>
+
+    <a class="sidebar-logo" id="home-logo" href="#" aria-label="TaskFlow — головна сторінка">
+      <span class="logo-icon">🐈‍⬛</span>
+      <span class="logo-text">TaskFlow</span>
+    </a>
+
+    <div class="sidebar-profile-box" id="sidebar-profile" style="display: flex; align-items: center; gap: 10px;">
+      <div class="profile-avatar-clean" id="sidebar-avatar">👤</div>
+      <div class="profile-info" style="overflow: hidden;">
+        <span class="profile-name" id="user-display-name" style="display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Користувач</span>
+        <span class="profile-email" id="user-display-email" style="display: block; font-size: 11px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">email@example.com</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title" data-i18n="menu-title">Меню</div>
+
+      <div class="nav-item-boards-group">
+        <div class="nav-item active" id="nav-boards" style="display: flex; justify-content: space-between; align-items: center;">
+          <span data-i18n="nav-boards">📋 Дошки</span>
+          <button id="add-board-btn" type="button" title="Додати дошку" data-i18n-title="btn-add-board-title" style="background: #8c52ff; color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-weight: bold; line-height: 1; z-index: 999; pointer-events: auto;">+</button>
+        </div>
+        <ul id="boards-list" class="boards-dropdown-list"></ul>
+      </div>
+
+      <a href="#" class="nav-item" id="nav-calendar" data-i18n="nav-calendar">📅 Календар</a>
+      <a href="#" class="nav-item" id="nav-analytics" data-i18n="nav-analytics">📊 Аналітика</a>
+      <a href="#" class="nav-item" id="nav-settings" data-i18n="nav-settings">⚙️ Налаштування</a>
+    </nav>
+
+    <div class="sidebar-mascot-widget neon-glow">
+      <div class="widget-content">
+        <p class="mascot-text" id="task-counter">Залишилось 0 завдань!</p>
+        <button class="mascot-btn" id="open-focus-btn" type="button" data-i18n="focus-mode">Фокус-режим</button>
+      </div>
+      <img src="assets/img/cat-mascot-top.png" alt="Mascot" class="widget-cat-corner">
+    </div>
+  </aside>
+
+  <button id="open-sidebar-btn" title="Відкрити меню" data-i18n-title="btn-expand-sidebar-title" style="display: none; position: fixed; top: 15px; left: 15px; z-index: 1000; background: #252836; color: #fff; border: 1px solid #8c52ff; border-radius: 6px; padding: 6px 12px; cursor: pointer;">▶ Меню</button>
+
+  <main class="main-content" id="app-main-content">
+
+    <section id="view-boards" class="app-view active-view">
+      <header class="dashboard-header">
+        <h1 class="page-title" id="current-board-title">Проєкт TaskFlow UI</h1>
+
+        <div class="header-actions">
+          <div class="sort-wrapper">
+            <label for="sort-tasks-select" data-i18n="sort-label">🔀 Сортувати:</label>
+            <select id="sort-tasks-select" class="sort-select">
+              <option value="default" data-i18n="sort-default">За замовчуванням</option>
+              <option value="title" data-i18n="sort-title">За назвою (A-Z)</option>
+              <option value="deadline" data-i18n="sort-deadline">За дедлайном</option>
+              <option value="priority" data-i18n="sort-priority">За пріоритетом</option>
+              <option value="today" data-i18n="sort-today">📅 Дедлайн сьогодні</option>
+            </select>
+          </div>
+          <button class="btn-primary neon-glow" id="add-task-btn" data-i18n="btn-new-task">+ Нова задача</button>
+        </div>
+      </header>
+
+      <div class="kanban-board">
+        <div class="kanban-column" id="col-todo">
+          <h2 class="column-title" data-i18n="col-todo">To Do</h2>
+          <div class="task-list"></div>
+        </div>
+        <div class="kanban-column" id="col-in-progress">
+          <h2 class="column-title" data-i18n="col-in-progress">In Progress</h2>
+          <div class="task-list"></div>
+        </div>
+        <div class="kanban-column" id="col-done">
+          <h2 class="column-title" data-i18n="col-done">Done</h2>
+          <div class="task-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-calendar" class="app-view">
+      <header class="dashboard-header">
+        <h1 class="page-title" data-i18n="cal-title">Календар завдань</h1>
+        <div class="calendar-nav-controls">
+          <button id="cal-prev-month" class="btn-secondary" data-i18n="cal-prev">← Попередній</button>
+          <span id="cal-month-year-title" class="calendar-month-title">Жовтень 2026</span>
+          <button id="cal-next-month" class="btn-secondary" data-i18n="cal-next">Наступний →</button>
+        </div>
+      </header>
+      <div class="calendar-grid-container neon-glow">
+        <div class="calendar-weekdays">
+          <div data-i18n="day-mo">Пн</div>
+          <div data-i18n="day-tu">Вт</div>
+          <div data-i18n="day-we">Ср</div>
+          <div data-i18n="day-th">Чт</div>
+          <div data-i18n="day-fr">Пт</div>
+          <div data-i18n="day-sa">Сб</div>
+          <div data-i18n="day-su">Нд</div>
+        </div>
+        <div id="calendar-days-grid" class="calendar-days-grid"></div>
+      </div>
+    </section>
+
+    <section id="view-analytics" class="app-view">
+      <header class="dashboard-header">
+        <h1 class="page-title" data-i18n="analytics-title">Аналітика продуктивності</h1>
+      </header>
+      <div class="analytics-grid">
+        <div class="analytics-card neon-glow">
+          <h3 data-i18n="stat-total-label">Усього завдань</h3>
+          <p class="analytics-number" id="stat-total">0</p>
+        </div>
+        <div class="analytics-card neon-glow">
+          <h3 data-i18n="stat-done-label">Виконано</h3>
+          <p class="analytics-number" id="stat-done">0</p>
+        </div>
+        <div class="analytics-card neon-glow">
+          <h3 data-i18n="stat-active-label">У процесі</h3>
+          <p class="analytics-number" id="stat-active">0</p>
+        </div>
+      </div>
+      <div class="analytics-mascot-card neon-glow">
+        <div class="analytics-mascot-container">
+          <img src="assets/img/cat-mascot.png" alt="Analytics Mascot" class="analytics-mascot-img">
+          <div class="mascot-oval-glow"></div>
+        </div>
+        <div class="analytics-mascot-speech">
+          <h3 data-i18n="mascot-title">Котик-аналітик каже:</h3>
+          <p id="mascot-comment" data-i18n="mascot-text">Час засукати рукави та взятися за роботу! Мяу~ 🐾</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-settings" class="app-view">
+      <header class="dashboard-header">
+        <h1 class="page-title" data-i18n="settings-title">Налаштування профілю</h1>
+      </header>
+
+      <div class="settings-container neon-glow">
+        <div class="settings-section">
+          <h3 data-i18n="settings-profile-heading">Керування профілем</h3>
+          <form id="profile-settings-form">
+            <div class="form-group">
+              <label for="settings-name" data-i18n="settings-name-label">Ім'я користувача</label>
+              <input type="text" id="settings-name" required>
+            </div>
+            <div class="form-group">
+              <label for="settings-email" data-i18n="settings-email-label">Email</label>
+              <input type="email" id="settings-email" readonly>
+            </div>
+            <div class="form-group">
+              <label for="settings-current-password" data-i18n="settings-current-password-label">Поточний пароль</label>
+              <div style="display: flex; gap: 10px;">
+                <input type="password" id="settings-current-password" autocomplete="current-password" style="flex: 1;">
+                <button type="button" id="toggle-password-btn" class="btn-secondary" style="padding: 0 12px;">👁️</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="settings-new-password" data-i18n="settings-new-password-label">Новий пароль (необов’язково)</label>
+              <input type="password" id="settings-new-password" autocomplete="new-password" minlength="10" maxlength="72">
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+              <label data-i18n="settings-avatar-label">Персоналізація аватара</label>
+              <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+                <div id="settings-avatar-preview" class="profile-avatar-clean">👤</div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn-secondary" id="change-avatar-emoji-btn" style="padding: 4px 10px; font-size: 12px;" data-i18n="btn-change-emoji">Змінити емодзі</button>
+                    <button type="button" class="btn-secondary" id="delete-avatar-btn" style="padding: 4px 10px; font-size: 12px; color: #ff5252;" data-i18n="btn-delete">Видалити</button>
+                  </div>
+                  <input type="file" id="avatar-file-input" accept="image/*" style="font-size: 12px;">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+              <label for="language-select" data-i18n="settings-lang-label">Мова інтерфейсу</label>
+              <select id="language-select">
+                <option value="uk">Українська</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+              <button type="submit" class="btn-primary" data-i18n="btn-save">Зберегти зміни</button>
+              <button type="button" id="logout-btn" class="btn-secondary" style="border-color: #ff5252; color: #ff5252;" data-i18n="btn-logout">Вийти з акаунта</button>
+            </div>
+            <p id="profile-error" role="alert" style="color: #ff8080; min-height: 1.2em;"></p>
+          </form>
+        </div>
+
+        <hr class="settings-divider">
+
+        <div class="settings-section">
+          <h3 data-i18n="settings-theme-heading">Тема оформлення</h3>
+          <div class="theme-picker" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="theme-btn neon-theme" data-theme="neon" data-i18n="theme-neon">💜 Фіолетовий неон</button>
+            <button class="theme-btn cyberpunk-theme" data-theme="cyberpunk" data-i18n="theme-cyberpunk">💙 Блакитний кіберпанк</button>
+            <button class="theme-btn light-theme" data-theme="light" data-i18n="theme-light" style="background: #f0edff; color: #8c52ff; border: 1px solid #8c52ff; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;">☀️ Світла тема</button>
+          </div>
+        </div>
+
+        <hr class="settings-divider">
+
+        <div class="settings-section danger-zone">
+          <h3 data-i18n="danger-heading">Небезпечна зона</h3>
+          <p data-i18n="danger-text">Видалення профілю призведе до втрати всіх дошок, завдань та персональних даних.</p>
+          <button id="delete-profile-btn" class="btn-danger" data-i18n="btn-delete-profile">Видалити профіль</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal-content neon-glow">
+      <h2 id="modal-task-title" data-i18n="modal-task-heading">Нова задача</h2>
+      <form id="task-form">
+        <input type="hidden" id="task-edit-id">
+        <div class="form-group">
+          <label for="task-title-input" data-i18n="modal-task-name">Назва задачі</label>
+          <input type="text" id="task-title-input" placeholder="Введіть назву задачі..." data-i18n-placeholder="placeholder-task" required>
+        </div>
+        <div class="form-group">
+          <label for="task-priority-input" data-i18n="modal-task-priority">Пріоритет</label>
+          <select id="task-priority-input">
+            <option value="Low" data-i18n="prio-low">Low</option>
+            <option value="Medium" selected data-i18n="prio-med">Medium</option>
+            <option value="High" data-i18n="prio-high">High</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="task-deadline-input" data-i18n="modal-task-deadline">Дедлайн</label>
+          <input type="date" id="task-deadline-input">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="close-modal-btn" data-i18n="btn-cancel">Скасувати</button>
+          <button type="submit" class="btn-primary" id="save-task-btn" data-i18n="btn-create">Створити</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальне вікно для Дошок -->
+  <div class="modal-overlay" id="custom-modal" style="display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999999;">
+    <div class="modal-content neon-glow" style="background: #1e1e2d; border: 1px solid #8c52ff; border-radius: 12px; padding: 24px; width: 360px; max-width: 90%; color: #fff;">
+      <h2 id="custom-modal-title" style="margin-top: 0; font-size: 18px;">Заголовок</h2>
+      <p id="custom-modal-text" style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;"></p>
+      <div class="form-group" id="custom-modal-input-wrapper">
+        <input type="text" id="custom-modal-input" placeholder="Введіть назву..." data-i18n-placeholder="placeholder-board" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #8c52ff; background: #252836; color: #fff; box-sizing: border-box;">
+      </div>
+      <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn-secondary" id="custom-modal-cancel" data-i18n="btn-cancel" style="padding: 8px 16px;">Скасувати</button>
+        <button type="button" class="btn-primary" id="custom-modal-submit" style="padding: 8px 16px;">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ФОКУС-РЕЖИМ (POMODORO) -->
+  <div class="modal-overlay" id="focus-modal" style="display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999999;">
+    <div class="modal-content neon-glow" style="background: #1e1e2d; border: 1px solid #8c52ff; border-radius: 16px; padding: 28px; width: 380px; max-width: 90%; color: #fff; text-align: center;">
+      <h2 data-i18n="focus-heading">🎯 Фокус-режим (Pomodoro)</h2>
+
+      <div class="focus-timer-display" id="focus-timer">25:00</div>
+
+      <div class="focus-mascot-box">
+        <span style="font-size: 32px;">🐈‍⬛</span>
+        <p id="focus-quote" style="font-size: 13px; margin: 0; text-align: left; opacity: 0.9;">Фокусуйся на задачі! Котик вірить у тебе 🐾</p>
+      </div>
+
+      <div style="display: flex; justify-content: center; gap: 10px; margin-top: 15px;">
+        <button id="focus-start-btn" class="btn-primary" data-i18n="focus-start" style="padding: 8px 18px;">Старт ▶</button>
+        <button id="focus-pause-btn" class="btn-secondary" data-i18n="focus-pause" style="padding: 8px 18px; display: none;">Пауза ⏸</button>
+        <button id="focus-reset-btn" class="btn-secondary" data-i18n="focus-reset" style="padding: 8px 18px;">Скидання 🔄</button>
+      </div>
+
+      <button id="focus-close-btn" class="btn-secondary" data-i18n="focus-close" style="margin-top: 20px; width: 100%; border-color: rgba(255,255,255,0.2);">Закрити</button>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
