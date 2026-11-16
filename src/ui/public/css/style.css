@@ -261,7 +261,7 @@ body {
   border-right: 1px solid rgba(168, 85, 247, 0.2);
   display: flex;
   flex-direction: column;
-  padding: 48px 20px 30px;
+  padding: 36px 20px 30px;
   transition: flex-basis 0.28s ease, width 0.28s ease, padding 0.28s ease, transform 0.28s ease;
 }
 
@@ -1497,7 +1497,7 @@ body.theme-cyberpunk .analytics-number {
     height: 100vh;
     height: 100dvh;
     overflow-y: auto;
-    padding: 48px 20px 24px;
+    padding: 36px 20px 24px;
     box-shadow: 12px 0 36px rgba(0, 0, 0, 0.4);
   }
 
@@ -1524,7 +1524,7 @@ body.theme-cyberpunk .analytics-number {
   .sidebar.collapsed {
     width: min(320px, 88vw);
     flex-basis: min(320px, 88vw);
-    padding: 48px 20px 24px;
+    padding: 36px 20px 24px;
     border-right-width: 1px;
     transform: translateX(-105%);
   }
