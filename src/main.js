@@ -41,6 +41,22 @@ function validatePassword(password, label = 'Password') {
   }
 }
 
+function validateTags(tags = []) {
+  if (!Array.isArray(tags) || tags.length > 10) {
+    throw new HttpError(400, 'Tags must be a list of no more than 10 items');
+  }
+  const normalizedTags = tags.map(tag => {
+    if (typeof tag !== 'string' || !tag.trim() || tag.trim().length > 30) {
+      throw new HttpError(400, 'Each tag must be between 1 and 30 characters');
+    }
+    return tag.trim();
+  });
+  if (new Set(normalizedTags.map(tag => tag.toLocaleLowerCase())).size !== normalizedTags.length) {
+    throw new HttpError(400, 'Tags must be unique');
+  }
+  return normalizedTags;
+}
+
 function getUserView(user) {
   return {
     id: user.id,
@@ -319,7 +335,7 @@ const requireOwnedBoard = asyncHandler(async (req, res, next) => {
 
 app.get('/api/boards/:boardId/tasks', requireAuth, requireOwnedBoard, asyncHandler(async (req, res) => {
   const result = await db.pool.query(`
-    SELECT id, title, status, priority, due_date AS "dueDate", created_at AS "createdAt"
+    SELECT id, title, status, priority, due_date AS "dueDate", tags, created_at AS "createdAt"
     FROM tasks WHERE board_id = $1
     ORDER BY created_at, id
   `, [req.board.id]);
@@ -331,6 +347,7 @@ app.post('/api/boards/:boardId/tasks', verifySameOrigin, requireAuth, requireOwn
     const status = req.body.status || 'todo';
     const priority = req.body.priority || 'Medium';
     const dueDate = req.body.dueDate || null;
+    const tags = validateTags(req.body.tags);
     if (!['todo', 'in-progress', 'done'].includes(status)) throw new HttpError(400, 'Unsupported task status');
     if (!['Low', 'Medium', 'High'].includes(priority)) throw new HttpError(400, 'Unsupported task priority');
     if (dueDate !== null && (typeof dueDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate))) {
@@ -342,23 +359,75 @@ app.post('/api/boards/:boardId/tasks', verifySameOrigin, requireAuth, requireOwn
       status,
       priority,
       dueDate,
+      tags,
       createdAt: new Date().toISOString()
     };
     await db.pool.query(`
-      INSERT INTO tasks (id, board_id, title, status, priority, due_date, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [task.id, req.board.id, task.title, task.status, task.priority, task.dueDate, task.createdAt]);
+      INSERT INTO tasks (id, board_id, title, status, priority, due_date, tags, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [task.id, req.board.id, task.title, task.status, task.priority, task.dueDate, task.tags, task.createdAt]);
     res.status(201).json({ task });
 }));
 
 app.patch('/api/boards/:boardId/tasks/:taskId', verifySameOrigin, requireAuth, requireOwnedBoard, asyncHandler(async (req, res) => {
-    const status = req.body.status;
-    if (!['todo', 'in-progress', 'done'].includes(status)) throw new HttpError(400, 'Unsupported task status');
-    const result = await db.pool.query('UPDATE tasks SET status = $1 WHERE id = $2 AND board_id = $3', [
-      status, req.params.taskId, req.board.id
-    ]);
-    if (!result.rowCount) throw new HttpError(404, 'Task not found');
-    res.json({ id: req.params.taskId, status });
+    const body = req.body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new HttpError(400, 'Task updates must be an object');
+    }
+
+    const allowedFields = new Set(['title', 'status', 'priority', 'dueDate', 'tags']);
+    if (Object.keys(body).some(key => !allowedFields.has(key))) {
+      throw new HttpError(400, 'Unsupported task field');
+    }
+
+    const updates = [];
+    if (Object.prototype.hasOwnProperty.call(body, 'title')) {
+      updates.push(['title', requireValue(body.title, 'Task title', 500)]);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'status')) {
+      if (!['todo', 'in-progress', 'done'].includes(body.status)) {
+        throw new HttpError(400, 'Unsupported task status');
+      }
+      updates.push(['status', body.status]);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'priority')) {
+      if (!['Low', 'Medium', 'High'].includes(body.priority)) {
+        throw new HttpError(400, 'Unsupported task priority');
+      }
+      updates.push(['priority', body.priority]);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'dueDate')) {
+      const { dueDate } = body;
+      if (dueDate !== null && (typeof dueDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate))) {
+        throw new HttpError(400, 'Invalid due date');
+      }
+      updates.push(['due_date', dueDate]);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'tags')) {
+      updates.push(['tags', validateTags(body.tags)]);
+    }
+    if (updates.length === 0) throw new HttpError(400, 'No task fields to update');
+
+    const values = updates.map(([, value]) => value);
+    const assignments = updates.map(([column], index) => `${column} = $${index + 1}`);
+    values.push(req.params.taskId, req.board.id);
+    const result = await db.pool.query(`
+      UPDATE tasks SET ${assignments.join(', ')}
+      WHERE id = $${values.length - 1} AND board_id = $${values.length}
+      RETURNING id, title, status, priority, due_date AS "dueDate", tags, created_at AS "createdAt"
+    `, values);
+    const task = result.rows[0];
+    if (!task) throw new HttpError(404, 'Task not found');
+    res.json({ task });
+}));
+
+app.delete('/api/boards/:boardId/tasks/:taskId', verifySameOrigin, requireAuth, requireOwnedBoard, asyncHandler(async (req, res) => {
+  const result = await db.pool.query(
+    'DELETE FROM tasks WHERE id = $1 AND board_id = $2',
+    [req.params.taskId, req.board.id]
+  );
+  if (!result.rowCount) throw new HttpError(404, 'Task not found');
+  res.sendStatus(204);
 }));
 
 app.post('/api/account/import', verifySameOrigin, requireAuth, asyncHandler(async (req, res) => {
@@ -401,11 +470,12 @@ app.post('/api/account/import', verifySameOrigin, requireAuth, asyncHandler(asyn
           const dueDate = typeof oldTask.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(oldTask.dueDate)
             ? oldTask.dueDate
             : null;
+          const tags = validateTags(oldTask.tags);
           await client.query(`
-            INSERT INTO tasks (id, board_id, title, status, priority, due_date, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO tasks (id, board_id, title, status, priority, due_date, tags, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           `, [
-            crypto.randomUUID(), board.id, title, status, priority, dueDate, new Date().toISOString()
+            crypto.randomUUID(), board.id, title, status, priority, dueDate, tags, new Date().toISOString()
           ]);
         }
       }

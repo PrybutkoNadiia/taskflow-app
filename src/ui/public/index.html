@@ -6,20 +6,6 @@
   <title data-i18n="app-title">TaskFlow — Канбан Дошка</title>
   <link rel="stylesheet" href="css/style.css" id="theme-stylesheet">
   <style>
-    .sidebar {
-      transition: transform 0.3s ease;
-      position: relative;
-    }
-    .sidebar.collapsed {
-      transform: translateX(-100%);
-    }
-    .main-content {
-      transition: margin-left 0.3s ease;
-    }
-    .main-content.expanded {
-      margin-left: 0 !important;
-    }
-
     .profile-avatar-clean {
       width: 40px !important;
       height: 40px !important;
@@ -127,7 +113,7 @@
     <div class="landing-glow landing-glow-four" aria-hidden="true"></div>
     <header class="landing-header">
       <div class="logo">
-        <span class="logo-icon">🐈‍⬛</span>
+        <img class="logo-mascot" src="assets/img/cat-mascot-top.png" alt="">
         <span class="logo-text">TaskFlow</span>
       </div>
       <div class="landing-mascot landing-mascot-right" aria-hidden="true">
@@ -236,10 +222,10 @@
   </div>
 
   <aside class="sidebar" id="app-sidebar">
-    <button id="toggle-sidebar-btn" title="Згорнути меню" data-i18n-title="btn-collapse-sidebar-title" style="position: absolute; top: 12px; right: 12px; background: rgba(140,82,255,0.2); color: #fff; border: 1px solid #8c52ff; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 12px; z-index: 10;">◀</button>
+    <button id="toggle-sidebar-btn" class="sidebar-close-button" type="button" title="Згорнути меню" data-i18n-title="btn-collapse-sidebar-title" data-i18n-aria-label="btn-collapse-sidebar-title" aria-label="Згорнути меню">×</button>
 
     <a class="sidebar-logo" id="home-logo" href="#" aria-label="TaskFlow — головна сторінка">
-      <span class="logo-icon">🐈‍⬛</span>
+      <img class="logo-mascot" src="assets/img/cat-mascot-top.png" alt="">
       <span class="logo-text">TaskFlow</span>
     </a>
 
@@ -257,7 +243,7 @@
       <div class="nav-item-boards-group">
         <div class="nav-item active" id="nav-boards" style="display: flex; justify-content: space-between; align-items: center;">
           <span data-i18n="nav-boards">📋 Дошки</span>
-          <button id="add-board-btn" type="button" title="Додати дошку" data-i18n-title="btn-add-board-title" style="background: #8c52ff; color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-weight: bold; line-height: 1; z-index: 999; pointer-events: auto;">+</button>
+          <button id="add-board-btn" class="add-board-button" type="button" title="Додати дошку" data-i18n-title="btn-add-board-title">+</button>
         </div>
         <ul id="boards-list" class="boards-dropdown-list"></ul>
       </div>
@@ -276,9 +262,13 @@
     </div>
   </aside>
 
-  <button id="open-sidebar-btn" title="Відкрити меню" data-i18n-title="btn-expand-sidebar-title" style="display: none; position: fixed; top: 15px; left: 15px; z-index: 1000; background: #252836; color: #fff; border: 1px solid #8c52ff; border-radius: 6px; padding: 6px 12px; cursor: pointer;">▶ Меню</button>
+  <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="Закрити меню" data-i18n-aria-label="btn-close-sidebar" hidden></button>
 
   <main class="main-content" id="app-main-content">
+    <div class="main-toolbar">
+      <button id="open-sidebar-btn" class="sidebar-menu-button" type="button" title="Відкрити меню" data-i18n-title="btn-expand-sidebar-title" data-i18n="btn-expand-sidebar" data-i18n-aria-label="btn-expand-sidebar-title" aria-controls="app-sidebar" aria-expanded="false">☰ Меню</button>
+    </div>
+    <div class="main-scroll-content">
 
     <section id="view-boards" class="app-view active-view">
       <header class="dashboard-header">
@@ -292,13 +282,42 @@
               <option value="title" data-i18n="sort-title">За назвою (A-Z)</option>
               <option value="deadline" data-i18n="sort-deadline">За дедлайном</option>
               <option value="priority" data-i18n="sort-priority">За пріоритетом</option>
-              <option value="today" data-i18n="sort-today">📅 Дедлайн сьогодні</option>
             </select>
           </div>
           <button class="btn-primary neon-glow" id="add-task-btn" data-i18n="btn-new-task">+ Нова задача</button>
         </div>
       </header>
 
+      <p class="task-error" id="task-error" role="alert" aria-live="polite"></p>
+      <div class="task-filters">
+        <label class="task-filter" for="task-search-input">
+          <span data-i18n="filter-search">Пошук</span>
+          <input id="task-search-input" type="search" data-i18n-placeholder="filter-search-placeholder" placeholder="Назва або тег">
+        </label>
+        <label class="task-filter" for="filter-priority-select">
+          <span data-i18n="filter-priority">Пріоритет</span>
+          <select id="filter-priority-select">
+            <option value="all" data-i18n="filter-all-priorities">Усі пріоритети</option>
+            <option value="High" data-i18n="prio-high">Високий</option>
+            <option value="Medium" data-i18n="prio-med">Середній</option>
+            <option value="Low" data-i18n="prio-low">Низький</option>
+          </select>
+        </label>
+        <label class="task-filter" for="filter-deadline-select">
+          <span data-i18n="filter-deadline">Дедлайн</span>
+          <select id="filter-deadline-select">
+            <option value="all" data-i18n="filter-all-deadlines">Усі дедлайни</option>
+            <option value="overdue" data-i18n="filter-overdue">Прострочені</option>
+            <option value="today" data-i18n="filter-due-today">На сьогодні</option>
+            <option value="today-and-overdue" data-i18n="filter-today">Сьогодні та прострочені</option>
+            <option value="future" data-i18n="filter-future">Майбутні</option>
+          </select>
+        </label>
+        <label class="task-filter" for="filter-tag-input">
+          <span data-i18n="filter-tag">Тег</span>
+          <input id="filter-tag-input" type="search" data-i18n-placeholder="filter-tag-placeholder" placeholder="Точна назва тегу">
+        </label>
+      </div>
       <div class="kanban-board">
         <div class="kanban-column" id="col-todo">
           <h2 class="column-title" data-i18n="col-todo">To Do</h2>
@@ -448,6 +467,7 @@
       </div>
     </section>
 
+    </div>
   </main>
 
   <div class="modal-overlay" id="task-modal">
@@ -470,6 +490,10 @@
         <div class="form-group">
           <label for="task-deadline-input" data-i18n="modal-task-deadline">Дедлайн</label>
           <input type="date" id="task-deadline-input">
+        </div>
+        <div class="form-group">
+          <label for="task-tags-input" data-i18n="modal-task-tags">Теги</label>
+          <input type="text" id="task-tags-input" data-i18n-placeholder="placeholder-tags" placeholder="Навчання, робота">
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-secondary" id="close-modal-btn" data-i18n="btn-cancel">Скасувати</button>

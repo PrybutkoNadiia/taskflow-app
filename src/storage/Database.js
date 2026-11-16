@@ -43,8 +43,11 @@ async function initializeDatabase() {
       status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'in-progress', 'done')),
       priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Medium', 'High')),
       due_date TEXT,
+      tags TEXT[] NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL
     );
+
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}';
 
     CREATE TABLE IF NOT EXISTS sessions (
       token_hash TEXT PRIMARY KEY,

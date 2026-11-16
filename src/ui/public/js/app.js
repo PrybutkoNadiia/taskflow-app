@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const taskInput = document.getElementById('task-title-input');
   const prioritySelect = document.getElementById('task-priority-input');
   const deadlineInput = document.getElementById('task-deadline-input');
+  const taskEditIdInput = document.getElementById('task-edit-id');
+  const taskModalTitle = document.getElementById('modal-task-title');
+  const saveTaskBtn = document.getElementById('save-task-btn');
+  const taskErrorMessage = document.getElementById('task-error');
 
   const authForm = document.getElementById('auth-form');
   const authModal = document.getElementById('auth-modal');
@@ -19,6 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeTaskModalBtn = document.getElementById('close-modal-btn');
   const taskModal = document.getElementById('task-modal');
   const sortSelect = document.getElementById('sort-tasks-select');
+  const searchInput = document.getElementById('task-search-input');
+  const priorityFilter = document.getElementById('filter-priority-select');
+  const deadlineFilter = document.getElementById('filter-deadline-select');
+  const tagFilter = document.getElementById('filter-tag-input');
+  const taskTagsInput = document.getElementById('task-tags-input');
 
   const customModal = document.getElementById('custom-modal');
   const customModalTitle = document.getElementById('custom-modal-title');
@@ -117,7 +126,18 @@ document.addEventListener('DOMContentLoaded', () => {
       'sort-title': 'За назвою (A-Z)',
       'sort-deadline': 'За дедлайном',
       'sort-priority': 'За пріоритетом',
-      'sort-today': '📅 Дедлайн сьогодні',
+      'filter-search': 'Пошук',
+      'filter-search-placeholder': 'Назва або тег',
+      'filter-priority': 'Пріоритет',
+      'filter-all-priorities': 'Усі пріоритети',
+      'filter-deadline': 'Дедлайн',
+      'filter-all-deadlines': 'Усі дедлайни',
+      'filter-overdue': 'Прострочені',
+      'filter-due-today': 'На сьогодні',
+      'filter-today': 'Сьогодні та прострочені',
+      'filter-future': 'Майбутні',
+      'filter-tag': 'Тег',
+      'filter-tag-placeholder': 'Точна назва тегу',
       'btn-new-task': '+ Нова задача',
       'col-todo': 'До виконання',
       'col-in-progress': 'У процесі',
@@ -150,7 +170,11 @@ document.addEventListener('DOMContentLoaded', () => {
       'btn-add-board-title': 'Додати дошку',
       'btn-collapse-sidebar-title': 'Згорнути меню',
       'btn-expand-sidebar-title': 'Відкрити меню',
-      'btn-expand-sidebar': '▶ Меню',
+      'btn-close-sidebar': 'Закрити меню',
+      'btn-expand-sidebar': '☰ Меню',
+      'task-edit': 'Редагувати',
+      'task-change-status': 'Змінити статус',
+      'task-delete-confirm': 'Видалити це завдання без можливості відновлення?',
       'theme-neon': '💜 Фіолетовий неон',
       'theme-cyberpunk': '💙 Блакитний кіберпанк',
       'theme-light': '☀️ Світла тема',
@@ -161,14 +185,18 @@ document.addEventListener('DOMContentLoaded', () => {
       'placeholder-task': 'Введіть назву задачі...',
       'btn-confirm': 'Підтвердити',
       'modal-task-heading': 'Нова задача',
+      'modal-task-edit-heading': 'Редагувати задачу',
       'modal-task-name': 'Назва задачі',
       'modal-task-priority': 'Пріоритет',
       'modal-task-deadline': 'Дедлайн',
+      'modal-task-tags': 'Теги (через кому, до 10)',
+      'placeholder-tags': 'Навчання, робота',
       'prio-low': 'Низький',
       'prio-med': 'Середній',
       'prio-high': 'Високий',
       'btn-cancel': 'Скасувати',
       'btn-create': 'Створити',
+      'btn-update-task': 'Зберегти зміни',
       'board-new-title': 'Нова дошка',
       'board-new-text': 'Введіть назву для нової дошки:',
       'board-edit-title': 'Редагувати дошку',
@@ -238,7 +266,18 @@ document.addEventListener('DOMContentLoaded', () => {
       'sort-title': 'By Name (A-Z)',
       'sort-deadline': 'By Deadline',
       'sort-priority': 'By Priority',
-      'sort-today': '📅 Due Today',
+      'filter-search': 'Search',
+      'filter-search-placeholder': 'Title or tag',
+      'filter-priority': 'Priority',
+      'filter-all-priorities': 'All priorities',
+      'filter-deadline': 'Deadline',
+      'filter-all-deadlines': 'All deadlines',
+      'filter-overdue': 'Overdue',
+      'filter-due-today': 'Due today',
+      'filter-today': 'Due today and overdue',
+      'filter-future': 'Future',
+      'filter-tag': 'Tag',
+      'filter-tag-placeholder': 'Exact tag name',
       'btn-new-task': '+ New Task',
       'col-todo': 'To Do',
       'col-in-progress': 'In Progress',
@@ -271,7 +310,11 @@ document.addEventListener('DOMContentLoaded', () => {
       'btn-add-board-title': 'Add board',
       'btn-collapse-sidebar-title': 'Collapse menu',
       'btn-expand-sidebar-title': 'Open menu',
-      'btn-expand-sidebar': '▶ Menu',
+      'btn-close-sidebar': 'Close menu',
+      'btn-expand-sidebar': '☰ Menu',
+      'task-edit': 'Edit',
+      'task-change-status': 'Change status',
+      'task-delete-confirm': 'Delete this task permanently?',
       'theme-neon': '💜 Purple Neon',
       'theme-cyberpunk': '💙 Blue Cyberpunk',
       'theme-light': '☀️ Light Theme',
@@ -282,14 +325,18 @@ document.addEventListener('DOMContentLoaded', () => {
       'placeholder-task': 'Enter task title...',
       'btn-confirm': 'Confirm',
       'modal-task-heading': 'New Task',
+      'modal-task-edit-heading': 'Edit Task',
       'modal-task-name': 'Task Title',
       'modal-task-priority': 'Priority',
       'modal-task-deadline': 'Deadline',
+      'modal-task-tags': 'Tags (comma-separated, up to 10)',
+      'placeholder-tags': 'Study, work',
       'prio-low': 'Low',
       'prio-med': 'Medium',
       'prio-high': 'High',
       'btn-cancel': 'Cancel',
       'btn-create': 'Create',
+      'btn-update-task': 'Save Changes',
       'board-new-title': 'New Board',
       'board-new-text': 'Enter a name for the new board:',
       'board-edit-title': 'Edit Board',
@@ -453,16 +500,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- САЙДБАР ---
   const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
   const openSidebarBtn = document.getElementById('open-sidebar-btn');
+  const sidebarBackdrop = document.getElementById('sidebar-backdrop');
   const sidebar = document.getElementById('app-sidebar');
   const mainContent = document.getElementById('app-main-content');
   const mobileViewport = window.matchMedia('(max-width: 900px)');
 
   if (toggleSidebarBtn && openSidebarBtn && sidebar && mainContent) {
     const setSidebarOpen = (isOpen) => {
-      sidebar.classList.toggle('collapsed', !isOpen);
-      mainContent.classList.toggle('expanded', !isOpen);
-      openSidebarBtn.style.display = isOpen ? 'none' : 'block';
-      openSidebarBtn.setAttribute('aria-expanded', String(isOpen));
+      const sidebarOpen = mobileViewport.matches ? isOpen : true;
+      sidebar.classList.toggle('collapsed', !sidebarOpen);
+      mainContent.classList.toggle('expanded', !sidebarOpen);
+      openSidebarBtn.style.display = sidebarOpen ? 'none' : 'inline-flex';
+      openSidebarBtn.setAttribute('aria-expanded', String(sidebarOpen));
+      if (sidebarBackdrop) sidebarBackdrop.hidden = !sidebarOpen || !mobileViewport.matches;
+      document.body.classList.toggle('sidebar-open', sidebarOpen && mobileViewport.matches);
     };
 
     const syncSidebarToViewport = () => {
@@ -476,6 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
     openSidebarBtn.addEventListener('click', () => {
       setSidebarOpen(true);
     });
+
+    if (sidebarBackdrop) {
+      sidebarBackdrop.addEventListener('click', () => setSidebarOpen(false));
+    }
 
     mobileViewport.addEventListener('change', syncSidebarToViewport);
     syncSidebarToViewport();
@@ -1084,22 +1139,49 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- ЗАВДАННЯ ---
-  if (openTaskModalBtn && taskModal) {
-    openTaskModalBtn.addEventListener('click', () => {
-      editingTaskId = null;
-      const dict = translations[localStorage.getItem('taskflow_lang') || 'uk'] || translations.uk;
-      document.getElementById('modal-task-title').textContent = dict['modal-task-heading'];
-      if (taskForm) taskForm.reset();
+  function closeTaskModal() {
+    editingTaskId = null;
+    if (taskEditIdInput) taskEditIdInput.value = '';
+    if (taskForm) taskForm.reset();
+    if (taskModal) {
+      taskModal.style.display = 'none';
+      taskModal.classList.remove('active');
+    }
+  }
+
+  function openTaskModal(task = null) {
+    const dict = translations[localStorage.getItem('taskflow_lang') || 'uk'] || translations.uk;
+    showNotice(taskErrorMessage);
+    editingTaskId = task ? String(task.id) : null;
+    if (taskEditIdInput) taskEditIdInput.value = editingTaskId || '';
+    if (taskForm) taskForm.reset();
+    if (taskInput) taskInput.value = task ? task.title : '';
+    if (prioritySelect) prioritySelect.value = task ? task.priority : 'Medium';
+    if (deadlineInput) deadlineInput.value = task ? task.dueDate || '' : '';
+    if (taskTagsInput) taskTagsInput.value = task && Array.isArray(task.tags) ? task.tags.join(', ') : '';
+    if (taskModalTitle) {
+      taskModalTitle.textContent = dict[task ? 'modal-task-edit-heading' : 'modal-task-heading'];
+    }
+    if (saveTaskBtn) {
+      saveTaskBtn.textContent = dict[task ? 'btn-update-task' : 'btn-create'];
+    }
+    if (taskModal) {
       taskModal.style.display = 'flex';
       taskModal.classList.add('active');
+    }
+    if (taskInput) taskInput.focus();
+  }
+
+  if (openTaskModalBtn && taskModal) {
+    openTaskModalBtn.addEventListener('click', () => {
+      openTaskModal();
     });
   }
 
   if (closeTaskModalBtn && taskModal) {
     closeTaskModalBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      taskModal.style.display = 'none';
-      taskModal.classList.remove('active');
+      closeTaskModal();
     });
   }
 
@@ -1110,13 +1192,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  [searchInput, priorityFilter, deadlineFilter, tagFilter].forEach(input => {
+    if (!input) return;
+    input.addEventListener(input === searchInput || input === tagFilter ? 'input' : 'change', applySortAndRender);
+  });
+
+  function getLocalDateString(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
   function applySortAndRender() {
     let tasksToRender = [...globalTasks];
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
+    const searchTerm = searchInput ? searchInput.value.trim().toLocaleLowerCase() : '';
+    const selectedPriority = priorityFilter ? priorityFilter.value : 'all';
+    const selectedDeadline = deadlineFilter ? deadlineFilter.value : 'all';
+    const selectedTag = tagFilter ? tagFilter.value.trim().toLocaleLowerCase() : '';
 
-    if (currentSort === 'today') {
-      tasksToRender = tasksToRender.filter(t => t.dueDate === todayStr);
-    } else if (currentSort === 'title') {
+    tasksToRender = tasksToRender.filter(task => {
+      const tags = Array.isArray(task.tags) ? task.tags : [];
+      const searchableText = `${task.title} ${tags.join(' ')}`.toLocaleLowerCase();
+      if (searchTerm && !searchableText.includes(searchTerm)) return false;
+      if (selectedPriority !== 'all' && task.priority !== selectedPriority) return false;
+      if (selectedTag && !tags.some(tag => tag.toLocaleLowerCase() === selectedTag)) return false;
+
+      if (selectedDeadline === 'overdue') {
+        return task.dueDate && task.dueDate < todayStr && task.status !== 'done';
+      }
+      if (selectedDeadline === 'today') {
+        return task.dueDate === todayStr;
+      }
+      if (selectedDeadline === 'today-and-overdue') {
+        return task.dueDate && task.dueDate <= todayStr && task.status !== 'done';
+      }
+      if (selectedDeadline === 'future') return task.dueDate && task.dueDate > todayStr;
+      return true;
+    });
+
+    if (currentSort === 'title') {
       tasksToRender.sort((a, b) => a.title.localeCompare(b.title));
     } else if (currentSort === 'deadline') {
       tasksToRender.sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
@@ -1142,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tasks.forEach(task => {
       const card = document.createElement('div');
       card.className = 'task-card';
-      card.draggable = true;
+      card.draggable = !mobileViewport.matches && !window.matchMedia('(pointer: coarse)').matches;
       card.dataset.id = task.id;
 
       const deadlineText = task.dueDate ? `<span>📅 ${task.dueDate}</span>` : '';
@@ -1154,15 +1267,67 @@ document.addEventListener('DOMContentLoaded', () => {
       let prioLabel = dict['prio-med'];
       if (task.priority === 'Low') prioLabel = dict['prio-low'];
       if (task.priority === 'High') prioLabel = dict['prio-high'];
+      const taskTags = Array.isArray(task.tags) ? task.tags : [];
+      const tagsHtml = taskTags.length
+        ? `<div class="task-tags">${taskTags.map(tag => `<span class="task-tag">${escapeHtml(tag)}</span>`).join('')}</div>`
+        : '';
 
       card.innerHTML = `
-        <div class="task-title">${escapeHtml(task.title)}</div>
-        <div class="task-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:12px;">
+        <div class="task-card-heading">
+          <div class="task-title">${escapeHtml(task.title)}</div>
+          <div class="task-actions">
+            <button type="button" class="edit-task-btn" title="${dict['task-edit']}" aria-label="${dict['task-edit']}">
+              <span aria-hidden="true">✎</span><span class="task-edit-label">${dict['task-edit']}</span>
+            </button>
+            <button type="button" class="edit-task-btn delete-task-btn" title="${dict['btn-delete']}" aria-label="${dict['btn-delete']}">
+              <span aria-hidden="true">×</span><span class="task-edit-label">${dict['btn-delete']}</span>
+            </button>
+          </div>
+        </div>
+        <div class="task-card-meta">
           <span>${dict['modal-task-priority']}: <strong>${prioLabel}</strong></span>
           <span style="opacity: 0.8;">${statusLabel}</span>
           ${deadlineText}
         </div>
+        ${tagsHtml}
+        <div class="task-card-controls">
+          <select class="task-status-select" aria-label="${dict['task-change-status']}">
+            <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>${dict['col-todo']}</option>
+            <option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>${dict['col-in-progress']}</option>
+            <option value="done" ${task.status === 'done' ? 'selected' : ''}>${dict['col-done']}</option>
+          </select>
+        </div>
       `;
+
+      card.querySelector('.edit-task-btn').addEventListener('click', event => {
+        event.stopPropagation();
+        openTaskModal(task);
+      });
+
+      card.querySelector('.delete-task-btn').addEventListener('click', async event => {
+        event.stopPropagation();
+        const currentDict = translations[localStorage.getItem('taskflow_lang') || 'uk'] || translations.uk;
+        if (!window.confirm(currentDict['task-delete-confirm'])) return;
+        const board = boards[activeBoardIndex];
+        if (!board) return;
+        try {
+          await apiRequest(
+            `/api/boards/${encodeURIComponent(board.id)}/tasks/${encodeURIComponent(task.id)}`,
+            { method: 'DELETE' }
+          );
+          globalTasks = globalTasks.filter(item => String(item.id) !== String(task.id));
+          tasksByBoard[board.id] = globalTasks;
+          showNotice(taskErrorMessage);
+          applySortAndRender();
+          updateAnalyticsStats();
+        } catch (error) {
+          showNotice(taskErrorMessage, error.message);
+        }
+      });
+
+      card.querySelector('.task-status-select').addEventListener('change', event => {
+        updateTaskStatus(task.id, event.target.value);
+      });
 
       card.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/plain', String(task.id));
@@ -1177,6 +1342,25 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (task.status === 'in-progress') inProgressList.appendChild(card);
       else if (task.status === 'done') doneList.appendChild(card);
     });
+  }
+
+  async function updateTaskStatus(taskId, status) {
+    const taskIndex = globalTasks.findIndex(task => String(task.id) === String(taskId));
+    const board = boards[activeBoardIndex];
+    if (taskIndex === -1 || !board) return;
+
+    try {
+      const { task } = await apiRequest(
+        `/api/boards/${encodeURIComponent(board.id)}/tasks/${encodeURIComponent(taskId)}`,
+        { method: 'PATCH', body: JSON.stringify({ status }) }
+      );
+      globalTasks[taskIndex] = task;
+      tasksByBoard[board.id] = globalTasks;
+      applySortAndRender();
+    } catch (error) {
+      showNotice(taskErrorMessage, error.message);
+      applySortAndRender();
+    }
   }
 
   const kanbanColumns = document.querySelectorAll('.kanban-column');
@@ -1194,21 +1378,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (column.id === 'col-in-progress') newStatus = 'in-progress';
       else if (column.id === 'col-done') newStatus = 'done';
 
-      const taskIndex = globalTasks.findIndex(t => String(t.id) === String(taskId));
-      if (taskIndex !== -1) {
-        const board = boards[activeBoardIndex];
-        try {
-          await apiRequest(`/api/boards/${encodeURIComponent(board.id)}/tasks/${encodeURIComponent(taskId)}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: newStatus })
-          });
-          globalTasks[taskIndex].status = newStatus;
-          tasksByBoard[board.id] = globalTasks;
-          applySortAndRender();
-        } catch (error) {
-          showNotice(profileError, error.message);
-        }
-      }
+      await updateTaskStatus(taskId, newStatus);
     });
   });
 
@@ -1218,33 +1388,43 @@ document.addEventListener('DOMContentLoaded', () => {
       const title = taskInput ? taskInput.value.trim() : '';
       const priority = prioritySelect ? prioritySelect.value : 'Medium';
       const dueDate = deadlineInput && deadlineInput.value ? deadlineInput.value : null;
+      const tags = taskTagsInput
+        ? taskTagsInput.value.split(',').map(tag => tag.trim()).filter((tag, index, allTags) => (
+          tag && allTags.findIndex(item => item.toLocaleLowerCase() === tag.toLocaleLowerCase()) === index
+        ))
+        : [];
 
       if (!title) return;
 
       const board = boards[activeBoardIndex];
       if (!board) return;
       try {
-        const { task } = await apiRequest(`/api/boards/${encodeURIComponent(board.id)}/tasks`, {
-          method: 'POST',
-          body: JSON.stringify({
-            title,
-            status: 'todo',
-            priority,
-            dueDate
-          })
-        });
-        globalTasks.push(task);
+        if (editingTaskId) {
+          const { task } = await apiRequest(
+            `/api/boards/${encodeURIComponent(board.id)}/tasks/${encodeURIComponent(editingTaskId)}`,
+            {
+              method: 'PATCH',
+              body: JSON.stringify({ title, priority, dueDate, tags })
+            }
+          );
+          const taskIndex = globalTasks.findIndex(item => String(item.id) === editingTaskId);
+          if (taskIndex === -1) throw new Error('Task is no longer available on this board');
+          globalTasks[taskIndex] = task;
+        } else {
+          const { task } = await apiRequest(`/api/boards/${encodeURIComponent(board.id)}/tasks`, {
+            method: 'POST',
+            body: JSON.stringify({ title, status: 'todo', priority, dueDate, tags })
+          });
+          globalTasks.push(task);
+        }
         tasksByBoard[board.id] = globalTasks;
       } catch (error) {
-        showNotice(profileError, error.message);
+        showNotice(taskErrorMessage, error.message);
         return;
       }
 
-      if (taskForm) taskForm.reset();
-      if (taskModal) {
-        taskModal.style.display = 'none';
-        taskModal.classList.remove('active');
-      }
+      showNotice(taskErrorMessage);
+      closeTaskModal();
 
       applySortAndRender();
     });
