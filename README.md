@@ -1,96 +1,65 @@
 # TaskFlow
 
-TaskFlow is a Kanban task tracker built with Node.js, Express, and PostgreSQL. It supports multiple boards, task priorities, deadlines, tags, search and filters, Ukrainian and English, and a Pomodoro focus timer.
-
-## Features
-
-- Create, edit, move, and delete tasks across To Do, In Progress, and Done columns.
-- Add a priority, optional deadline, and up to 10 comma-separated tags to each task.
-- Search task titles and tags; filter by priority, tag, or deadline (overdue, due today, today and overdue, or future).
-- Sort tasks by title, deadline, or priority.
-- Use multiple boards, a calendar, basic productivity analytics, and the focus timer.
-- Sign in to keep each user's boards, tasks, and preferences separate.
-
-## Data model and storage
-
-PostgreSQL stores users, boards, tasks, and login sessions. Each board belongs to a user, and each task belongs to a board; deleting a board also deletes its tasks. Task records include a title, status, priority, optional date, tags, and creation timestamp. The server validates input and uses parameterized SQL queries. PostgreSQL handles individual database writes; registration and legacy-data import use explicit transactions so their related changes succeed or roll back together. The server adds newly introduced task columns when it initializes the database, preserving existing task data.
-
-## Run locally
-
-Requirements: Node.js and a PostgreSQL database.
-
-```bash
-npm install
-```
-
-Create a `.env` file with your PostgreSQL connection string before starting:
-
-```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require&channel_binding=require"
-```
-
-Then start the server:
-
-```bash
-npm start
-```
-
-Open http://localhost:3000 in a browser.
-
-Accounts, boards, tasks, and preferences are stored in PostgreSQL. Passwords are hashed, and the login session is kept in an HTTP-only cookie for 30 days. Existing browser boards and tasks are imported once when a new account is registered.
-
-## Basic usage
-
-This is a web app, not a CLI; these are its five main user workflows:
-
-1. Register or sign in.
-2. Select a board or create a new one.
-3. Add a task with a title; optionally set its priority, deadline, and comma-separated tags.
-4. Search or filter tasks, then change their status using the status selector or by dragging a card between columns on desktop.
-5. Edit a task with the edit button, or delete it with the delete button and confirm the prompt.
-
-## Project level and side quests
-
-TaskFlow targets the **Standard** level: it supports task creation, listing by Kanban status, editing, deletion, priorities, deadlines, tags, search, deadline and priority filters, and persistent storage in PostgreSQL.
-
-It also includes selected **Advanced** side quests:
-
-- Kanban web UI with drag-and-drop status changes.
-- Multiple user accounts with separate boards and tasks.
-- Calendar view and a basic statistics dashboard.
-- Pomodoro focus timer. The timer is client-side and does not record completed sessions.
-
-## Personal angle
-
-The personal twist is a friendly cat mascot and playful visual themes for a productivity tool. The intent is to make planning feel more welcoming and less stressful while keeping the Kanban workflow clear.
+TaskFlow is a web-based Kanban task tracker for organizing tasks by status, priority, deadline, and tags.
 
 ## Screenshot
 
-Add a screenshot of the board populated with your own real tasks. Do not use sample or invented task data as evidence.
+<!-- Add your screenshot at docs/screenshots/taskflow-board.png -->
+![TaskFlow board with real tasks](docs/screenshots/taskflow-board.png)
 
-<!-- Save the image as docs/screenshots/taskflow.png, then uncomment:
-![TaskFlow board with real tasks](docs/screenshots/taskflow.png)
--->
+## Project level and side quests
 
-## One week of use
+**Level:** Standard.
 
-Add a short, honest before/after note after using TaskFlow for a week: what felt inconvenient, what you changed, and whether the change helped. This section is intentionally not filled in until there is real usage experience to describe.
+The app supports task creation, listing by status, editing and deletion; priority and deadline fields; tags; search; filters by priority, tag, and deadline; and persistent PostgreSQL storage.
 
-## Contributors
+**Advanced side quests included:**
 
-If this was a team project, list each member and their contribution here. If completed individually, replace this note with “Individual project.”
+- Kanban web UI with drag-and-drop between status columns.
+- Multiple accounts with separate boards and tasks.
+- Calendar and basic productivity analytics.
+- Pomodoro focus timer. It runs in the browser and does not save completed sessions.
 
-## Hosting
+## Personal twist
 
-This project uses an Express server, so GitHub Pages alone cannot run it. For a no-cost demo, create a PostgreSQL database on Neon and deploy the app as a free Node.js Web Service on Render:
+TaskFlow uses a friendly cat mascot and playful themes. This visual style is intended to make planning feel more welcoming and less stressful while keeping the task workflow clear.
 
-- In Neon, create a project and copy its pooled PostgreSQL connection string.
-- In Render, create a Web Service from this GitHub repository and select the `main` branch.
-- Build command: `npm install`
-- Start command: `npm start`
-- Set `NODE_ENV` to `production`.
-- Set `DATABASE_URL` to the Neon connection string. Keep it secret; do not commit it to GitHub.
+## Run the app
 
-No Render disk is needed because PostgreSQL is hosted separately. Free hosting plans have usage limits and may sleep when idle; Neon free databases also have resource limits. Check provider terms before relying on them for important data. Render's free Postgres databases expire after 30 days, so use a separate provider such as Neon's free plan for this demo.
+Requirements: Node.js 20 or later and a PostgreSQL database.
 
-Registration is open to anyone who can reach the deployed site. Add email verification, password reset, and abuse protection before using it for sensitive or business-critical data.
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Create a `.env` file in the project root and set your PostgreSQL connection string:
+
+   ```env
+   DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE"
+   ```
+
+3. Start the server:
+
+   ```bash
+   npm start
+   ```
+
+4. Open http://localhost:3000.
+
+This is a web app, not a CLI. Its five most useful actions are:
+
+1. Register or sign in.
+2. Create or select a board.
+3. Create a task with a title and optional priority, deadline, and comma-separated tags.
+4. Search or filter tasks, then change their status using the selector or desktop drag-and-drop.
+5. Edit or delete a task.
+
+## Data model
+
+PostgreSQL stores users, boards, tasks, and login sessions. A board belongs to one user, and a task belongs to one board. A task has an ID, title, status, priority, creation timestamp, optional deadline, and a list of tags. Status and priority have defaults; tags default to an empty list. Deleting a user or board also deletes its related data.
+
+## Storage atomicity
+
+Task changes are sent to PostgreSQL as parameterized SQL statements, so each individual insert, update, or delete is handled as one database operation. Registration and legacy-data import change several related records, so those operations use explicit transactions: either all their changes are committed, or they are rolled back. PostgreSQL, rather than a JSON file, is the persistent storage layer.
